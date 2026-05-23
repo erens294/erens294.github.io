@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#1e40af">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calculator Delay SJNAM</title>
@@ -1755,5 +1758,103 @@ CS Ground`;
         if (e.target.id === 'stoModal') closeModal();
     });
 </script>
+
+<script>
+// --- OFFLINE PWA + AUTO SYNC ---
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      console.log('SW registered');
+    });
+  });
+}
+
+// Queue system
+const SYNC_QUEUE_KEY = 'syncQueue';
+function getQueue(){ return JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY)||'[]'); }
+function setQueue(q){ localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(q)); }
+
+function queueSync(payload){
+  const q = getQueue();
+  q.push({...payload, queuedAt: new Date().toISOString()});
+  setQueue(q);
+  updateOnlineStatus();
+}
+
+async function processQueue(){
+  if(!navigator.onLine) return;
+  const webhook = localStorage.getItem('googleSheetWebhook');
+  if(!webhook) return;
+  let q = getQueue();
+  if(q.length===0) return;
+  
+  const btn = document.getElementById('syncStatus');
+  if(btn) btn.textContent = `⏳ Syncing ${q.length}...`;
+  
+  while(q.length>0){
+    const item = q[0];
+    try {
+      await fetch(webhook, {method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(item)});
+      q.shift();
+      setQueue(q);
+      // Optional: push to GitHub
+      await pushToGitHub(item);
+    } catch(e){ console.error('Sync fail', e); break; }
+  }
+  if(btn) btn.textContent = q.length? `⚠️ ${q.length} pending` : '✅ Online & synced';
+  localStorage.setItem('lastSync', new Date().toLocaleString('id-ID'));
+}
+
+async function pushToGitHub(payload){
+  const token = localStorage.getItem('githubToken');
+  const repo = localStorage.getItem('githubRepo'); // format owner/repo
+  if(!token || !repo) return;
+  try {
+    const path = `data/backup-${new Date().toISOString().split('T')[0]}.json`;
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+    await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+      method:'PUT',
+      headers:{'Authorization':`token ${token}`, 'Content-Type':'application/json'},
+      body: JSON.stringify({message:`Auto sync ${new Date().toISOString()}`, content, branch:'main'})
+    });
+  } catch(e){ console.warn('GitHub sync skip', e); }
+}
+
+function updateOnlineStatus(){
+  const el = document.getElementById('onlineIndicator');
+  if(!el) return;
+  if(navigator.onLine){
+    el.textContent = '🟢 Online';
+    el.style.background = 'var(--success)';
+    processQueue();
+  } else {
+    const pending = getQueue().length;
+    el.textContent = `🔴 Offline (${pending} pending)`;
+    el.style.background = 'var(--danger)';
+  }
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+setInterval(processQueue, 30000); // every 30s
+document.addEventListener('DOMContentLoaded', updateOnlineStatus);
+
+// Patch existing syncToGoogleSheet
+const originalSync = window.syncToGoogleSheet;
+window.syncToGoogleSheet = async function(){
+  const payload = {
+    action:'push',
+    formData, approvalData, parameters,
+    timestamp: new Date().toISOString()
+  };
+  if(!navigator.onLine){
+    queueSync(payload);
+    alert('📴 Offline: data disimpan lokal, akan auto-sync saat online');
+    return;
+  }
+  queueSync(payload);
+  await processQueue();
+}
+</script>
+<div id="onlineIndicator" style="position:fixed;bottom:16px;right:16px;padding:8px 12px;border-radius:20px;color:white;font-size:12px;font-weight:600;z-index:9999;background:#4CAF50;box-shadow:0 2px 8px rgba(0,0,0,0.2)">🟢 Online</div>
 </body>
 </html>
