@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#1e40af">
-<meta name="apple-mobile-web-app-capable" content="yes">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calculator Delay SJNAM</title>
@@ -632,6 +629,34 @@
     <div id="dashboard" class="tab-content">
         <div class="section-title">📊 Dashboard Total Cost PM89</div>
         <div class="card">
+            <div class="toolbar" style="margin-bottom:16px; flex-wrap:wrap">
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
+                    <label style="font-weight:600; font-size:13px">Filter:</label>
+                    <select id="stationFilter" onchange="renderDashboard()" style="padding:8px 12px; border:1px solid var(--border); border-radius:6px; min-width:140px">
+                        <option value="all">Semua Station</option>
+                    </select>
+                    <select id="dashboardYearFilter" onchange="renderDashboard()" style="padding:8px 12px; border:1px solid var(--border); border-radius:6px; min-width:120px">
+                        <option value="all">Semua Tahun</option>
+                    </select>
+                    <select id="dashboardMonthFilter" onchange="renderDashboard()" style="padding:8px 12px; border:1px solid var(--border); border-radius:6px; min-width:130px">
+                        <option value="all">Semua Bulan</option>
+                        <option value="1">Januari</option>
+                        <option value="2">Februari</option>
+                        <option value="3">Maret</option>
+                        <option value="4">April</option>
+                        <option value="5">Mei</option>
+                        <option value="6">Juni</option>
+                        <option value="7">Juli</option>
+                        <option value="8">Agustus</option>
+                        <option value="9">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Desember</option>
+                    </select>
+                    <button class="btn btn-sm btn-warning" onclick="resetDashboardFilters()" style="margin-left:8px">Reset</button>
+                </div>
+                <div id="filterInfo" style="font-size:12px; color:#6b7280; margin-left:auto"></div>
+            </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 20px;">
                 <div style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; padding: 20px; border-radius: 8px;">
                     <div style="font-size: 14px; opacity: 0.9;">Minggu Ini</div>
@@ -1359,11 +1384,30 @@ Selesai!`;
     function renderDashboard() {
         const now = new Date();
         const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Monday
+        startOfWeek.setDate(now.getDate() - now.getDay() + 1);
         startOfWeek.setHours(0,0,0,0);
         
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+        // Get filters
+        const stationFilter = document.getElementById('stationFilter');
+        const yearFilterDash = document.getElementById('dashboardYearFilter');
+        const monthFilter = document.getElementById('dashboardMonthFilter');
+        const selectedStation = stationFilter ? stationFilter.value : 'all';
+        const selectedYearDash = yearFilterDash ? yearFilterDash.value : 'all';
+        const selectedMonth = monthFilter ? monthFilter.value : 'all';
+
+        // Filter data based on selections
+        let filteredData = approvalData.filter(item => {
+            const itemDate = item.isoDate ? new Date(item.isoDate) : new Date();
+            const itemStation = item.route ? item.route.split('-')[0].toUpperCase() : '';
+            
+            if (selectedStation !== 'all' && itemStation !== selectedStation) return false;
+            if (selectedYearDash !== 'all' && itemDate.getFullYear() != selectedYearDash) return false;
+            if (selectedMonth !== 'all' && (itemDate.getMonth()+1) != selectedMonth) return false;
+            return true;
+        });
 
         let weekTotal = 0, weekCount = 0, weekPax = 0;
         let monthTotal = 0, monthCount = 0, monthPax = 0;
@@ -1371,10 +1415,36 @@ Selesai!`;
 
         const monthlyData = {};
         const years = new Set();
+        const stations = new Set();
 
         approvalData.forEach(item => {
             const itemDate = item.isoDate ? new Date(item.isoDate) : new Date();
             years.add(itemDate.getFullYear());
+            const st = item.route ? item.route.split('-')[0].toUpperCase() : '';
+            if(st) stations.add(st);
+        });
+
+        // Populate station filter
+        if(stationFilter){
+            const currentSt = stationFilter.value;
+            stationFilter.innerHTML = '<option value="all">Semua Station</option>';
+            Array.from(stations).sort().forEach(s => {
+                stationFilter.innerHTML += `<option value="${s}">${s}</option>`;
+            });
+            stationFilter.value = stations.has(currentSt) ? currentSt : 'all';
+        }
+        // Populate year filter dashboard
+        if(yearFilterDash){
+            const currentY = yearFilterDash.value;
+            yearFilterDash.innerHTML = '<option value="all">Semua Tahun</option>';
+            Array.from(years).sort((a,b)=>b-a).forEach(y => {
+                yearFilterDash.innerHTML += `<option value="${y}">${y}</option>`;
+            });
+            yearFilterDash.value = years.has(parseInt(currentY)) ? currentY : 'all';
+        }
+
+        filteredData.forEach(item => {
+            const itemDate = item.isoDate ? new Date(item.isoDate) : new Date();
             
             if (itemDate >= startOfWeek) {
                 weekTotal += item.estCost;
@@ -1401,14 +1471,16 @@ Selesai!`;
             monthlyData[monthKey].total += item.estCost;
         });
 
-        // Update year filter
+        // Update original yearFilter for chart (keep compatibility)
         const yearFilter = document.getElementById('yearFilter');
-        const currentFilter = yearFilter.value;
-        yearFilter.innerHTML = '<option value="all">Semua Tahun</option>';
-        Array.from(years).sort((a,b) => b-a).forEach(y => {
-            yearFilter.innerHTML += `<option value="${y}">${y}</option>`;
-        });
-        yearFilter.value = currentFilter && years.has(parseInt(currentFilter)) ? currentFilter : 'all';
+        if(yearFilter){
+            const currentFilter = yearFilter.value;
+            yearFilter.innerHTML = '<option value="all">Semua Tahun</option>';
+            Array.from(years).sort((a,b) => b-a).forEach(y => {
+                yearFilter.innerHTML += `<option value="${y}">${y}</option>`;
+            });
+            yearFilter.value = currentFilter && years.has(parseInt(currentFilter)) ? currentFilter : 'all';
+        }
 
         document.getElementById('totalWeek').textContent = `Rp ${weekTotal.toLocaleString('id-ID')}`;
         document.getElementById('countWeek').textContent = `${weekCount} flight • ${weekPax} pax`;
@@ -1417,10 +1489,20 @@ Selesai!`;
         document.getElementById('totalYear').textContent = `Rp ${yearTotal.toLocaleString('id-ID')}`;
         document.getElementById('countYear').textContent = `${yearCount} flight • ${yearPax} pax`;
 
+        // Update filter info
+        const info = document.getElementById('filterInfo');
+        if(info){
+            const parts = [];
+            if(selectedStation!=='all') parts.push(`Station: ${selectedStation}`);
+            if(selectedYearDash!=='all') parts.push(`Tahun: ${selectedYearDash}`);
+            if(selectedMonth!=='all') parts.push(`Bulan: ${['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][selectedMonth]}`);
+            info.textContent = parts.length ? `Filter aktif • ${parts.join(' • ')} • ${filteredData.length} data` : `${filteredData.length} total data`;
+        }
+
         const tbody = document.getElementById('monthlyBreakdown');
         tbody.innerHTML = '';
         
-        const selectedYear = yearFilter.value;
+        const selectedYear = yearFilter ? yearFilter.value : 'all';
         let filteredKeys = Object.keys(monthlyData).sort().reverse();
         if (selectedYear !== 'all') {
             filteredKeys = filteredKeys.filter(k => monthlyData[k].year == selectedYear);
@@ -1441,10 +1523,9 @@ Selesai!`;
             `;
             tbody.appendChild(tr);
             chartLabels.push(data.name.split(' ')[0]);
-            chartData.push(data.total / 1000000); // dalam juta
+            chartData.push(data.total / 1000000);
         });
 
-        // Render Chart
         const ctx = document.getElementById('monthlyChart');
         if (window.monthlyChartInstance) {
             window.monthlyChartInstance.destroy();
@@ -1479,6 +1560,14 @@ Selesai!`;
             }
         });
     }
+
+function resetDashboardFilters(){
+    document.getElementById('stationFilter').value = 'all';
+    document.getElementById('dashboardYearFilter').value = 'all';
+    document.getElementById('dashboardMonthFilter').value = 'all';
+    renderDashboard();
+}
+
 
     function exportDashboardPDF() {
         const { jsPDF } = window.jspdf;
