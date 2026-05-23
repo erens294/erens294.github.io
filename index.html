@@ -413,13 +413,57 @@
         margin-bottom: 16px;
         color: var(--primary);
     }
+
+    .help-panel {
+        position: fixed; top:0; right:-420px; width:380px; height:100vh;
+        background:white; box-shadow:-4px 0 20px rgba(0,0,0,0.15);
+        transition:right 0.3s ease; z-index:2000; overflow-y:auto; padding:28px;
+    }
+    .help-panel.active { right:0; }
+    .help-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1999; }
+    .help-overlay.active { display:block; }
+    .help-panel h3 { color: var(--primary); margin-bottom:16px; font-size:18px; }
+    .help-panel h4 { margin:16px 0 8px; font-size:14px; color:#374151; }
+    .help-panel p, .help-panel li { font-size:13px; line-height:1.6; color:#4b5563; }
+    .help-panel ul { padding-left:18px; margin-bottom:12px; }
+    .utc-preview { font-size:11px; color:#1e40af; margin-top:4px; display:block; font-weight:600; }
+    .utc-preview.empty { color:#9ca3af; font-weight:400; }
+
 </style>
 </head>
 <body>
 <div class="container">
-    <div class="header">
+    <div class="header" style="position:relative;">
         <h1>Calculator Delay SJNAM</h1>
         <p>PM89 CIU Insurance Calculator & Approval System</p>
+        <button id="helpToggle" class="btn" style="position:absolute; right:24px; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.2); color:white; border:1px solid rgba(255,255,255,0.4); backdrop-filter:blur(4px);">❓ Bantuan</button>
+    </div>
+    <div class="help-overlay" id="helpOverlay"></div>
+    <div class="help-panel" id="helpPanel">
+        <h3>📘 Panduan Cepat PM89</h3>
+        <h4>Alur Kerja</h4>
+        <ol style="padding-left:18px; font-size:13px; line-height:1.6;">
+            <li>Input data di tab <b>Home</b> (pakai waktu UTC)</li>
+            <li>Sistem otomatis hitung delay & konversi ke local</li>
+            <li>Klik <b>Save</b> → data masuk ke <b>Data Approval</b></li>
+            <li>Generate surat di tab <b>Request Approval</b></li>
+        </ol>
+        <h4>Auto-Convert UTC ↔ Local</h4>
+        <p>Saat kamu isi <b>Route</b> (contoh CGK-DPS), sistem ambil UTC offset dari tab Parameter. Di bawah setiap kolom UTC akan muncul preview waktu lokal otomatis.</p>
+        <ul>
+            <li>CGK = UTC+7, DPS = UTC+8, UPG = UTC+8</li>
+            <li>Ubah STO di Parameter jika ada bandara baru</li>
+        </ul>
+        <h4>PM89 Threshold</h4>
+        <ul>
+            <li><span style="color:#9E9E9E;">■</span> 0-60 menit: belum eligible</li>
+            <li><span style="color:#FFC107;">■</span> 61-120 menit: warning</li>
+            <li><span style="color:#FF9800;">■</span> 121-180 menit: PM89 mulai</li>
+            <li><span style="color:#F44336;">■</span> >240 menit: prioritas tinggi</li>
+        </ul>
+        <h4>Tips</h4>
+        <p>• Selalu input dalam UTC untuk menghindari salah hari.<br>• Time Publish OCL wajib diisi untuk audit.<br>• Data otomatis terhapus setelah 7 hari.</p>
+        <button class="btn btn-primary" onclick="closeHelp()" style="width:100%; margin-top:16px;">Tutup</button>
     </div>
 
     <div class="nav-tabs">
@@ -451,14 +495,17 @@
                     <div class="form-group">
                         <label>Schedule Time Departure UTC *</label>
                         <input type="time" id="stdUtc" required>
+                        <small class="utc-preview empty" id="stdLocalPreview">Isi Route dulu untuk lihat waktu lokal</small>
                     </div>
                     <div class="form-group">
                         <label>Estimate Time Departure UTC *</label>
                         <input type="time" id="etdUtc" required>
+                        <small class="utc-preview empty" id="etdLocalPreview">Isi Route dulu untuk lihat waktu lokal</small>
                     </div>
                     <div class="form-group">
                         <label>Time Publish OCL *</label>
                         <input type="time" id="timeOcl" required>
+                        <small class="utc-preview empty" id="oclLocalPreview">Isi Route dulu untuk lihat waktu lokal</small>
                     </div>
                     <div class="form-group">
                         <label>Process *</label>
@@ -1613,12 +1660,94 @@ CS Ground`;
         }
     }
 
+
+    // Help Panel
+    function openHelp() {
+        document.getElementById('helpPanel').classList.add('active');
+        document.getElementById('helpOverlay').classList.add('active');
+    }
+    function closeHelp() {
+        document.getElementById('helpPanel').classList.remove('active');
+        document.getElementById('helpOverlay').classList.remove('active');
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        const helpBtn = document.getElementById('helpToggle');
+        if (helpBtn) helpBtn.addEventListener('click', openHelp);
+        const overlay = document.getElementById('helpOverlay');
+        if (overlay) overlay.addEventListener('click', closeHelp);
+    });
+
+    // Auto-convert UTC to Local
+    function updateUtcPreviews() {
+        const route = document.getElementById('route').value.toUpperCase();
+        const stoCode = route.split('-')[0] || route.substring(0, 3);
+        const stdUtc = document.getElementById('stdUtc').value;
+        const etdUtc = document.getElementById('etdUtc').value;
+        const oclUtc = document.getElementById('timeOcl').value;
+        
+        if (!stoCode || stoCode.length < 3) {
+            document.getElementById('stdLocalPreview').textContent = 'Isi Route dulu untuk lihat waktu lokal';
+            document.getElementById('stdLocalPreview').className = 'utc-preview empty';
+            document.getElementById('etdLocalPreview').textContent = 'Isi Route dulu untuk lihat waktu lokal';
+            document.getElementById('etdLocalPreview').className = 'utc-preview empty';
+            document.getElementById('oclLocalPreview').textContent = 'Isi Route dulu untuk lihat waktu lokal';
+            document.getElementById('oclLocalPreview').className = 'utc-preview empty';
+            return;
+        }
+        
+        const utcOffset = getParameterUTC(stoCode);
+        const offsetLabel = utcOffset.startsWith('+') || utcOffset.startsWith('-') ? 'UTC' + utcOffset : 'UTC+' + utcOffset;
+        
+        const stdLocal = stdUtc ? addUtcOffset(stdUtc, utcOffset) : '';
+        const etdLocal = etdUtc ? addUtcOffset(etdUtc, utcOffset) : '';
+        const oclLocal = oclUtc ? addUtcOffset(oclUtc, utcOffset) : '';
+        
+        const stdEl = document.getElementById('stdLocalPreview');
+        const etdEl = document.getElementById('etdLocalPreview');
+        const oclEl = document.getElementById('oclLocalPreview');
+        
+        if (stdLocal) {
+            stdEl.textContent = `→ ${stdLocal} ${offsetLabel} (${stoCode})`;
+            stdEl.className = 'utc-preview';
+        } else {
+            stdEl.textContent = 'Masukkan STD UTC';
+            stdEl.className = 'utc-preview empty';
+        }
+        
+        if (etdLocal) {
+            etdEl.textContent = `→ ${etdLocal} ${offsetLabel} (${stoCode})`;
+            etdEl.className = 'utc-preview';
+        } else {
+            etdEl.textContent = 'Masukkan ETD UTC';
+            etdEl.className = 'utc-preview empty';
+        }
+        
+        if (oclLocal) {
+            oclEl.textContent = `→ ${oclLocal} ${offsetLabel} (${stoCode})`;
+            oclEl.className = 'utc-preview';
+        } else {
+            oclEl.textContent = 'Masukkan Time OCL';
+            oclEl.className = 'utc-preview empty';
+        }
+    }
+
     function setupListeners() {
         document.getElementById('searchHome').addEventListener('input', renderFormData);
         document.getElementById('filterDate').addEventListener('input', renderApprovalData);
         document.getElementById('filterFlight').addEventListener('input', renderApprovalData);
         document.getElementById('filterRoute').addEventListener('input', renderApprovalData);
         document.getElementById('filterStatus').addEventListener('input', renderApprovalData);
+        
+        // Auto-convert listeners
+        ['route','stdUtc','etdUtc','timeOcl'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', updateUtcPreviews);
+                el.addEventListener('change', updateUtcPreviews);
+            }
+        });
+        // Initial call
+        updateUtcPreviews();
     }
 
     // Close modal on outside click
