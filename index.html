@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calculator Delay SJNAM</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <style>
     :root {
         --primary: #1e40af;
@@ -424,6 +426,7 @@
         <button class="nav-tab active" data-tab="home">Home</button>
         <button class="nav-tab" data-tab="request">Request Approval</button>
         <button class="nav-tab" data-tab="data-approval">Data Approval</button>
+        <button class="nav-tab" data-tab="dashboard">Dashboard</button>
         <button class="nav-tab" data-tab="parameter">Parameter</button>
     </div>
 
@@ -570,6 +573,56 @@
         <div class="grand-total" id="grandTotal">Grand Total Est Cost PM89: Rp 0</div>
     </div>
 
+    <!-- DASHBOARD TAB -->
+    <div id="dashboard" class="tab-content">
+        <div class="section-title">📊 Dashboard Total Cost PM89</div>
+        <div class="card">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                <div style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; padding: 20px; border-radius: 8px;">
+                    <div style="font-size: 14px; opacity: 0.9;">Minggu Ini</div>
+                    <div id="totalWeek" style="font-size: 24px; font-weight: 700; margin-top: 8px;">Rp 0</div>
+                    <div id="countWeek" style="font-size: 12px; opacity: 0.8; margin-top: 4px;">0 flight</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 20px; border-radius: 8px;">
+                    <div style="font-size: 14px; opacity: 0.9;">Bulan Ini</div>
+                    <div id="totalMonth" style="font-size: 24px; font-weight: 700; margin-top: 8px;">Rp 0</div>
+                    <div id="countMonth" style="font-size: 12px; opacity: 0.8; margin-top: 4px;">0 flight</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 20px; border-radius: 8px;">
+                    <div style="font-size: 14px; opacity: 0.9;">Tahun Ini</div>
+                    <div id="totalYear" style="font-size: 24px; font-weight: 700; margin-top: 8px;">Rp 0</div>
+                    <div id="countYear" style="font-size: 12px; opacity: 0.8; margin-top: 4px;">0 flight</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="toolbar" style="justify-content: space-between;">
+                <div class="section-title" style="font-size: 16px; margin: 0;">📈 Grafik & Rincian per Bulan</div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <select id="yearFilter" onchange="renderDashboard()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;">
+                        <option value="all">Semua Tahun</option>
+                    </select>
+                    <button class="btn btn-success" onclick="exportDashboardPDF()">📄 Export PDF</button>
+                </div>
+            </div>
+            <canvas id="monthlyChart" style="max-height: 300px; margin: 20px 0;"></canvas>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Bulan</th>
+                            <th>Jumlah Flight</th>
+                            <th>Total Pax</th>
+                            <th>Total Cost PM89</th>
+                        </tr>
+                    </thead>
+                    <tbody id="monthlyBreakdown"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- PARAMETER TAB -->
     <div id="parameter" class="tab-content">
         <div class="section-title">⚙️ Parameter STO & UTC</div>
@@ -670,6 +723,14 @@
         formData = JSON.parse(localStorage.getItem(STORAGE_KEYS.FORM_DATA) || '[]');
         approvalData = JSON.parse(localStorage.getItem(STORAGE_KEYS.APPROVAL_DATA) || '[]');
         parameters = JSON.parse(localStorage.getItem(STORAGE_KEYS.PARAMETERS) || JSON.stringify(DEFAULT_PARAMETERS));
+    }
+
+    function renderAll() {
+        renderFormData();
+        renderApprovalData();
+        renderParameters();
+        renderDashboard();
+        updateRequestSelect();
     }
 
     function saveFormData() {
@@ -966,6 +1027,7 @@
         const approvalItem = {
             id: Date.now(),
             date: formatDate(item.dateOfFlight),
+            isoDate: item.dateOfFlight,
             flightNo: item.flightNo,
             route: item.route,
             qtyPax: item.qtyPax,
@@ -982,6 +1044,7 @@
         approvalData.push(approvalItem);
         saveApprovalData();
         renderApprovalData();
+        renderDashboard();
         alert('Data berhasil di-save ke Data Approval!');
     }
 
@@ -1028,6 +1091,7 @@
             item.estCost = parseInt(value) || 0;
             saveApprovalData();
             renderApprovalData();
+            renderDashboard();
         }
     }
 
@@ -1036,6 +1100,7 @@
             approvalData = approvalData.filter(d => d.id !== id);
             saveApprovalData();
             renderApprovalData();
+            renderDashboard();
         }
     }
 
@@ -1094,6 +1159,172 @@
         // Export
         const fileName = `Data_Approval_PM89_${new Date().toISOString().split('T')[0]}.xlsx`;
         XLSX.writeFile(wb, fileName);
+    }
+
+    function renderDashboard() {
+        const now = new Date();
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Monday
+        startOfWeek.setHours(0,0,0,0);
+        
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+        let weekTotal = 0, weekCount = 0, weekPax = 0;
+        let monthTotal = 0, monthCount = 0, monthPax = 0;
+        let yearTotal = 0, yearCount = 0, yearPax = 0;
+
+        const monthlyData = {};
+        const years = new Set();
+
+        approvalData.forEach(item => {
+            const itemDate = item.isoDate ? new Date(item.isoDate) : new Date();
+            years.add(itemDate.getFullYear());
+            
+            if (itemDate >= startOfWeek) {
+                weekTotal += item.estCost;
+                weekCount++;
+                weekPax += item.qtyPax;
+            }
+            if (itemDate >= startOfMonth) {
+                monthTotal += item.estCost;
+                monthCount++;
+                monthPax += item.qtyPax;
+            }
+            if (itemDate >= startOfYear) {
+                yearTotal += item.estCost;
+                yearCount++;
+                yearPax += item.qtyPax;
+            }
+
+            const monthKey = `${itemDate.getFullYear()}-${String(itemDate.getMonth()+1).padStart(2,'0')}`;
+            if (!monthlyData[monthKey]) {
+                monthlyData[monthKey] = { count: 0, pax: 0, total: 0, name: itemDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }), year: itemDate.getFullYear() };
+            }
+            monthlyData[monthKey].count++;
+            monthlyData[monthKey].pax += item.qtyPax;
+            monthlyData[monthKey].total += item.estCost;
+        });
+
+        // Update year filter
+        const yearFilter = document.getElementById('yearFilter');
+        const currentFilter = yearFilter.value;
+        yearFilter.innerHTML = '<option value="all">Semua Tahun</option>';
+        Array.from(years).sort((a,b) => b-a).forEach(y => {
+            yearFilter.innerHTML += `<option value="${y}">${y}</option>`;
+        });
+        yearFilter.value = currentFilter && years.has(parseInt(currentFilter)) ? currentFilter : 'all';
+
+        document.getElementById('totalWeek').textContent = `Rp ${weekTotal.toLocaleString('id-ID')}`;
+        document.getElementById('countWeek').textContent = `${weekCount} flight • ${weekPax} pax`;
+        document.getElementById('totalMonth').textContent = `Rp ${monthTotal.toLocaleString('id-ID')}`;
+        document.getElementById('countMonth').textContent = `${monthCount} flight • ${monthPax} pax`;
+        document.getElementById('totalYear').textContent = `Rp ${yearTotal.toLocaleString('id-ID')}`;
+        document.getElementById('countYear').textContent = `${yearCount} flight • ${yearPax} pax`;
+
+        const tbody = document.getElementById('monthlyBreakdown');
+        tbody.innerHTML = '';
+        
+        const selectedYear = yearFilter.value;
+        let filteredKeys = Object.keys(monthlyData).sort().reverse();
+        if (selectedYear !== 'all') {
+            filteredKeys = filteredKeys.filter(k => monthlyData[k].year == selectedYear);
+        }
+        filteredKeys = filteredKeys.slice(0, 12);
+
+        const chartLabels = [];
+        const chartData = [];
+
+        filteredKeys.reverse().forEach(key => {
+            const data = monthlyData[key];
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${data.name}</strong></td>
+                <td>${data.count}</td>
+                <td>${data.pax}</td>
+                <td>Rp ${data.total.toLocaleString('id-ID')}</td>
+            `;
+            tbody.appendChild(tr);
+            chartLabels.push(data.name.split(' ')[0]);
+            chartData.push(data.total / 1000000); // dalam juta
+        });
+
+        // Render Chart
+        const ctx = document.getElementById('monthlyChart');
+        if (window.monthlyChartInstance) {
+            window.monthlyChartInstance.destroy();
+        }
+        window.monthlyChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Total Cost PM89 (Juta Rp)',
+                    data: chartData,
+                    backgroundColor: 'rgba(30, 64, 175, 0.8)',
+                    borderColor: 'rgba(30, 64, 175, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Rp ' + (context.parsed.y * 1000000).toLocaleString('id-ID');
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Juta Rupiah' } }
+                }
+            }
+        });
+    }
+
+    function exportDashboardPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        doc.setFontSize(16);
+        doc.text('Dashboard Total Cost PM89', 14, 20);
+        doc.setFontSize(10);
+        doc.text(`Tanggal Export: ${new Date().toLocaleDateString('id-ID')}`, 14, 28);
+        
+        // Summary
+        doc.setFontSize(12);
+        doc.text('Ringkasan:', 14, 40);
+        doc.setFontSize(10);
+        doc.text(document.getElementById('totalWeek').textContent + ' (Minggu Ini)', 14, 48);
+        doc.text(document.getElementById('totalMonth').textContent + ' (Bulan Ini)', 14, 54);
+        doc.text(document.getElementById('totalYear').textContent + ' (Tahun Ini)', 14, 60);
+        
+        // Table
+        let y = 75;
+        doc.setFontSize(12);
+        doc.text('Rincian per Bulan:', 14, y);
+        y += 8;
+        doc.setFontSize(9);
+        doc.text('Bulan', 14, y);
+        doc.text('Flight', 70, y);
+        doc.text('Pax', 100, y);
+        doc.text('Total Cost', 130, y);
+        y += 6;
+        
+        document.querySelectorAll('#monthlyBreakdown tr').forEach(tr => {
+            const tds = tr.querySelectorAll('td');
+            if (y > 270) { doc.addPage(); y = 20; }
+            doc.text(tds[0].textContent, 14, y);
+            doc.text(tds[1].textContent, 70, y);
+            doc.text(tds[2].textContent, 100, y);
+            doc.text(tds[3].textContent, 130, y);
+            y += 6;
+        });
+        
+        doc.save(`Dashboard_PM89_${new Date().toISOString().split('T')[0]}.pdf`);
     }
 
     function updateRequestSelect() {
