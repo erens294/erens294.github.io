@@ -818,7 +818,7 @@
             const stdLt = addUtcOffset(item.stdUtc, utcOffset);
             const etdLt = addUtcOffset(item.etdUtc, utcOffset);
             const estDelay = calculateTimeDiff(item.stdUtc, item.etdUtc);
-            const delayNow = calculateDelayNow(item.stdUtc, item.dateOfFlight);
+            const delayNow = calculateDelayNow(stdLt, item.dateOfFlight);
             const airlines = getAirlines(item.flightNo);
             const status = item.status || getStatus(estDelay.totalMinutes);
             const pfc = calculatePFC(item.timeOcl);
@@ -864,9 +864,10 @@
         });
     }
 
-    function calculateDelayNow(stdUtc, flightDate) {
+    function calculateDelayNow(stdLt, flightDate) {
         const now = new Date();
-        const flightDateTime = new Date(flightDate + 'T' + stdUtc + 'Z');
+        // Hitung berdasarkan From STD Lt (waktu lokal), bukan UTC
+        const flightDateTime = new Date(flightDate + 'T' + stdLt + ':00');
         const diffMs = now - flightDateTime;
         if (diffMs < 0) return { minutes: 0, display: '00:00' };
         // Jika sudah lewat dari 2 hari (48 jam), tidak perlu dihitung lagi
@@ -895,7 +896,10 @@
 
     function updateDelayNow() {
         formData.forEach(item => {
-            const delayNow = calculateDelayNow(item.stdUtc, item.dateOfFlight);
+            const stoCode = item.route.split('-')[0] || item.route.substring(0, 3);
+            const utcOffset = getParameterUTC(stoCode);
+            const stdLt = addUtcOffset(item.stdUtc, utcOffset);
+            const delayNow = calculateDelayNow(stdLt, item.dateOfFlight);
             const el = document.getElementById(`delayNow-${item.id}`);
             if (el) {
                 el.textContent = delayNow.display;
