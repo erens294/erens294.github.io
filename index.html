@@ -818,7 +818,7 @@
             const stdLt = addUtcOffset(item.stdUtc, utcOffset);
             const etdLt = addUtcOffset(item.etdUtc, utcOffset);
             const estDelay = calculateTimeDiff(item.stdUtc, item.etdUtc);
-            const delayNow = calculateDelayNow(item.etdUtc, item.dateOfFlight);
+            const delayNow = calculateDelayNow(item.stdUtc, item.dateOfFlight);
             const airlines = getAirlines(item.flightNo);
             const status = item.status || getStatus(estDelay.totalMinutes);
             const pfc = calculatePFC(item.timeOcl);
@@ -842,7 +842,7 @@
                 <td>${stdLt}</td>
                 <td>${etdLt}</td>
                 <td><span class="badge ${getDelayClass(estDelay.totalMinutes)}">${estDelay.display}</span></td>
-                <td><span class="badge ${delayNow.expired ? '' : getDelayClass(delayNow.minutes)}" id="delayNow-${item.id}">${delayNow.display}</span></td>
+                <td><span class="badge ${getDelayClass(delayNow.minutes)}" id="delayNow-${item.id}">${delayNow.display}</span></td>
                 <td class="about-cell" title="${item.about}">${item.about || '-'}</td>
                 <td>${item.timeOcl}</td>
                 <td>${pfc}</td>
@@ -864,15 +864,11 @@
         });
     }
 
-    function calculateDelayNow(etdUtc, flightDate) {
+    function calculateDelayNow(stdUtc, flightDate) {
         const now = new Date();
-        const flightDateTime = new Date(flightDate + 'T' + etdUtc + 'Z');
+        const flightDateTime = new Date(flightDate + 'T' + stdUtc + 'Z');
         const diffMs = now - flightDateTime;
         if (diffMs < 0) return { minutes: 0, display: '00:00' };
-        // Jika sudah lewat dari 2 hari (48 jam), tidak perlu dihitung lagi
-        if (diffMs > 2 * 24 * 60 * 60 * 1000) {
-            return { minutes: 0, display: '-', expired: true };
-        }
         const diffMinutes = Math.floor(diffMs / 60000);
         const hours = Math.floor(diffMinutes / 60);
         const minutes = diffMinutes % 60;
@@ -895,11 +891,11 @@
 
     function updateDelayNow() {
         formData.forEach(item => {
-            const delayNow = calculateDelayNow(item.etdUtc, item.dateOfFlight);
+            const delayNow = calculateDelayNow(item.stdUtc, item.dateOfFlight);
             const el = document.getElementById(`delayNow-${item.id}`);
             if (el) {
                 el.textContent = delayNow.display;
-                el.className = delayNow.expired ? 'badge' : `badge ${getDelayClass(delayNow.minutes)}`;
+                el.className = `badge ${getDelayClass(delayNow.minutes)}`;
             }
         });
     }
