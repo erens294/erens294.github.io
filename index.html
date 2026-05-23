@@ -550,7 +550,8 @@
             </div>
             <div class="toolbar">
                 <button class="btn btn-success" onclick="exportExcel()">📥 Export to Excel</button>
-                <button class="btn btn-primary" onclick="syncToGoogleSheet()">🔄 Sync ke Google Sheets</button>
+                <button class="btn btn-primary" onclick="syncToGoogleSheet()">⬆️ Push ke Sheet</button>
+                <button class="btn btn-warning" onclick="pullFromGoogleSheet()">⬇️ Pull dari Sheet</button>
             </div>
             <div style="font-size: 12px; color: #6b7280; margin-top: 8px;">
                 💡 Pertama kali? <a href="#" onclick="showSheetGuide(); return false;" style="color: var(--primary);">Klik untuk panduan setup Google Sheets (2 menit)</a>
@@ -1180,75 +1181,127 @@
             localStorage.setItem('googleSheetWebhook', webhook);
         }
 
-        const filtered = getFilteredApprovalData();
-        if (filtered.length === 0) {
-            alert('Tidak ada data untuk di-sync!');
-            return;
-        }
-
-        const payload = filtered.map(item => ({
-            date: item.date,
-            flightNo: item.flightNo,
-            route: item.route,
-            qtyPax: item.qtyPax,
-            status: item.status,
-            about: item.about,
-            airlines: item.airlines,
-            estCost: item.estCost,
-            stdLt: item.stdLt,
-            etdLt: item.etdLt,
-            estDelay: item.estDelay
-        }));
+        // Kirim SEMUA data (bukan cuma filtered) untuk two-way sync
+        const payload = {
+            action: 'push',
+            formData: formData,
+            approvalData: approvalData,
+            parameters: parameters,
+            timestamp: new Date().toISOString()
+        };
 
         try {
             const btn = event.target;
             btn.disabled = true;
-            btn.textContent = '⏳ Syncing...';
+            btn.textContent = '⏳ Pushing...';
             
-            const response = await fetch(webhook, {
+            await fetch(webhook, {
                 method: 'POST',
                 mode: 'no-cors',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data: payload })
+                body: JSON.stringify(payload)
             });
             
             btn.disabled = false;
-            btn.textContent = '🔄 Sync ke Google Sheets';
-            alert(`✅ ${payload.length} data berhasil dikirim ke Google Sheets!\n\nBuka Google Sheet kamu untuk melihat hasilnya.`);
+            btn.textContent = '⬆️ Push ke Sheet';
+            localStorage.setItem('lastSync', new Date().toLocaleString('id-ID'));
+            alert(`✅ Push berhasil! ${formData.length} Form + ${approvalData.length} Approval terkirim.\n\nLast sync: ${localStorage.getItem('lastSync')}`);
         } catch (error) {
-            alert('❌ Gagal sync. Cek URL Web App dan pastikan sudah di-deploy sebagai "Anyone".\n\nError: ' + error.message);
-            localStorage.removeItem('googleSheetWebhook');
+            const btn = event.target;
+            btn.disabled = false;
+            btn.textContent = '⬆️ Push ke Sheet';
+            alert('❌ Gagal push. Cek URL dan deployment.\n\nError: ' + error.message);
+        }
+    }
+
+    async function pullFromGoogleSheet() {
+        const webhook = localStorage.getItem('googleSheetWebhook');
+        if (!webhook) {
+            alert('Belum ada URL Web App. Klik Push dulu atau masukkan URL.');
+            return;
+        }
+
+        try {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = '⏳ Pulling...';
+            
+            const response = await fetch(webhook + '?action=pull&t=' + Date.now());
+            const result = await response.json();
+            
+            if (result.formData) {
+                formData = result.formData;
+                saveFormData();
+            }
+            if (result.approvalData) {
+                approvalData = result.approvalData;
+                saveApprovalData();
+            }
+            if (result.parameters) {
+                parameters = result.parameters;
+                saveParameters();
+            }
+            
+            renderAll();
+            btn.disabled = false;
+            btn.textContent = '⬇️ Pull dari Sheet';
+            localStorage.setItem('lastSync', new Date().toLocaleString('id-ID'));
+            alert(`✅ Pull berhasil!\n${formData.length} Form, ${approvalData.length} Approval, ${parameters.length} Parameter.\n\nLast sync: ${localStorage.getItem('lastSync')}`);
+        } catch (error) {
+            const btn = event.target;
+            btn.disabled = false;
+            btn.textContent = '⬇️ Pull dari Sheet';
+            alert('❌ Gagal pull. Pastikan Web App sudah deploy dengan akses Anyone dan doGet aktif.\n\nError: ' + error.message);
         }
     }
 
     function showSheetGuide() {
-        const guide = `PANDUAN SYNC GOOGLE SHEETS (2 MENIT):
+        const guide = `PANDUAN TWO-WAY SYNC GOOGLE SHEETS (3 MENIT):
 
-1. Buka https://sheets.google.com → Buat Sheet baru
-2. Buka https://script.google.com → New Project
-3. Paste kode ini:
+1. Buat Google Sheet baru → beri nama "Calculator Delay SJNAM"
+2. Buka Extensions → Apps Script → hapus kode default, paste ini:
+
+const SHEET_NAME = 'Data';
+function getSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) sheet = ss.insertSheet(SHEET_NAME);
+  return sheet;
+}
+
+function doGet(e) {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return ContentService.createTextOutput(JSON.stringify({formData:[],approvalData:[],parameters:[]})).setMimeType(ContentService.MimeType.JSON);
+  
+  const json = JSON.parse(data[1][0] || '{}');
+  return ContentService.createTextOutput(JSON.stringify(json)).setMimeType(ContentService.MimeType.JSON);
+}
 
 function doPost(e) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  const data = JSON.parse(e.postData.contents).data;
+  const sheet = getSheet();
+  const payload = JSON.parse(e.postData.contents);
   
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(['Date','Flight No','Route','Qty Pax','Status','About','Airlines','Est Cost','STD Lt','ETD Lt','Est Delay']);
-  }
-  
-  data.forEach(row => {
-    sheet.appendRow([row.date, row.flightNo, row.route, row.qtyPax, row.status, row.about, row.airlines, row.estCost, row.stdLt, row.etdLt, row.estDelay]);
-  });
+  // Simpan semua data sebagai JSON di cell A2 (simple two-way)
+  sheet.clear();
+  sheet.getRange(1,1).setValue('LAST_SYNC');
+  sheet.getRange(1,2).setValue(new Date());
+  sheet.getRange(2,1).setValue(JSON.stringify(payload));
   
   return ContentService.createTextOutput('OK');
 }
 
-4. Deploy → New deployment → Type: Web app
+3. Deploy → New deployment → Web app
    - Execute as: Me
    - Who has access: Anyone
-5. Copy URL Web App → Paste di aplikasi ini
+4. Copy URL → paste di aplikasi saat klik Push/Pull
 
-Selesai! Sekarang klik Sync lagi.`;
+CARA PAKAI:
+- ⬆️ Push: kirim data dari aplikasi ke Sheet
+- ⬇️ Pull: ambil data terbaru dari Sheet (tim lain bisa edit di Sheet, lalu kamu Pull)
+- Bisa auto-sync tiap 5 menit: tambahkan setInterval(pullFromGoogleSheet, 300000);
+
+Selesai!`;
         
         alert(guide);
     }
