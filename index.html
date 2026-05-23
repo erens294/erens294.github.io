@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calculator Delay SJNAM</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
     :root {
         --primary: #1e40af;
@@ -545,7 +546,7 @@
                 <input type="text" id="filterStatus" placeholder="Filter Status">
             </div>
             <div class="toolbar">
-                <button class="btn btn-success" onclick="exportCSV()">📥 Export to CSV</button>
+                <button class="btn btn-success" onclick="exportExcel()">📥 Export to Excel</button>
             </div>
         </div>
         <div class="table-wrapper">
@@ -913,7 +914,6 @@
         if (item) {
             item.qtyPax = parseInt(value) || 0;
             saveFormData();
-            // update without full re-render to keep focus, but re-render is simpler
             renderFormData();
             updateRequestSelect();
         }
@@ -1031,7 +1031,7 @@
         }
     }
 
-    function exportCSV() {
+    function exportExcel() {
         const filterDate = document.getElementById('filterDate').value.toLowerCase();
         const filterFlight = document.getElementById('filterFlight').value.toLowerCase();
         const filterRoute = document.getElementById('filterRoute').value.toLowerCase();
@@ -1044,17 +1044,48 @@
             item.status.toLowerCase().includes(filterStatus)
         );
 
-        let csv = 'Date,Flight No,Route,Qty Pax,Status,About,Airlines,Est Cost PM89\n';
+        // Siapkan data untuk Excel
+        const wsData = [
+            ['Date', 'Flight No', 'Route', 'Qty Pax', 'Status', 'About', 'Airlines', 'Est Cost PM89', 'STD Lt', 'ETD Lt', 'Est Delay']
+        ];
+        
         filtered.forEach(item => {
-            csv += `"${item.date}","${item.flightNo}","${item.route}",${item.qtyPax},"${item.status}","${item.about}","${item.airlines}",${item.estCost}\n`;
+            wsData.push([
+                item.date,
+                item.flightNo,
+                item.route,
+                item.qtyPax,
+                item.status,
+                item.about || '',
+                item.airlines,
+                item.estCost,
+                item.stdLt || '',
+                item.etdLt || '',
+                item.estDelay || ''
+            ]);
         });
 
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Data_Approval_PM89_${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
+        // Tambah baris total
+        const total = filtered.reduce((sum, item) => sum + item.estCost, 0);
+        wsData.push([]);
+        wsData.push(['', '', '', '', '', '', 'GRAND TOTAL', total]);
+
+        // Buat workbook
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        
+        // Atur lebar kolom
+        ws['!cols'] = [
+            { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 8 },
+            { wch: 14 }, { wch: 25 }, { wch: 15 }, { wch: 15 },
+            { wch: 8 }, { wch: 8 }, { wch: 10 }
+        ];
+
+        XLSX.utils.book_append_sheet(wb, ws, 'Data Approval');
+        
+        // Export
+        const fileName = `Data_Approval_PM89_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, fileName);
     }
 
     function updateRequestSelect() {
