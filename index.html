@@ -819,14 +819,20 @@
             const estDelay = calculateTimeDiff(item.stdUtc, item.etdUtc);
             const delayNow = calculateDelayNow(item.stdUtc, item.dateOfFlight);
             const airlines = getAirlines(item.flightNo);
-            const status = getStatus(estDelay.totalMinutes);
+            const status = item.status || getStatus(estDelay.totalMinutes);
             const pfc = calculatePFC(item.timeOcl);
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${index + 1}</td>
                 <td>${formatDate(item.dateOfFlight)}</td>
-                <td><span class="badge badge-${estDelay.totalMinutes > 0 ? 'warning' : 'success'}">${status}</span></td>
+                <td>
+                    <select class="process-select" onchange="updateStatus(${item.id}, this.value)" style="font-size:11px; padding:4px 6px; min-width:110px;">
+                        <option value="On Time" ${status === 'On Time' ? 'selected' : ''}>On Time</option>
+                        <option value="Delay Flight" ${status === 'Delay Flight' ? 'selected' : ''}>Delay Flight</option>
+                        <option value="Postpone Flight" ${status === 'Postpone Flight' ? 'selected' : ''}>Postpone Flight</option>
+                    </select>
+                </td>
                 <td><strong>${item.flightNo}</strong></td>
                 <td>${item.stdUtc}</td>
                 <td>${item.etdUtc}</td>
@@ -839,7 +845,7 @@
                 <td class="about-cell" title="${item.about}">${item.about || '-'}</td>
                 <td>${item.timeOcl}</td>
                 <td>${pfc}</td>
-                <td>${item.qtyPax}</td>
+                <td><input type="number" min="0" value="${item.qtyPax}" onchange="updateQtyPax(${item.id}, this.value)" style="width:70px; padding:4px 6px; border:1px solid var(--border); border-radius:4px; font-size:12px;"></td>
                 <td>
                     <select class="process-select ${getProcessClass(item.process)}" onchange="updateProcess(${item.id}, this.value)">
                         <option value="Approved" ${item.process === 'Approved' ? 'selected' : ''}>Approved</option>
@@ -902,6 +908,26 @@
         }
     }
 
+    function updateQtyPax(id, value) {
+        const item = formData.find(d => d.id === id);
+        if (item) {
+            item.qtyPax = parseInt(value) || 0;
+            saveFormData();
+            // update without full re-render to keep focus, but re-render is simpler
+            renderFormData();
+            updateRequestSelect();
+        }
+    }
+
+    function updateStatus(id, value) {
+        const item = formData.find(d => d.id === id);
+        if (item) {
+            item.status = value;
+            saveFormData();
+            renderFormData();
+        }
+    }
+
     function deleteFormData(id) {
         if (confirm('Hapus data ini?')) {
             formData = formData.filter(d => d.id !== id);
@@ -935,7 +961,7 @@
             flightNo: item.flightNo,
             route: item.route,
             qtyPax: item.qtyPax,
-            status: getStatus(estDelay.totalMinutes),
+            status: item.status || getStatus(estDelay.totalMinutes),
             about: item.about,
             airlines: getAirlines(item.flightNo),
             estCost: item.qtyPax * 300000,
