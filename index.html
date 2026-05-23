@@ -550,6 +550,10 @@
             </div>
             <div class="toolbar">
                 <button class="btn btn-success" onclick="exportExcel()">📥 Export to Excel</button>
+                <button class="btn btn-primary" onclick="syncToGoogleSheet()">🔄 Sync ke Google Sheets</button>
+            </div>
+            <div style="font-size: 12px; color: #6b7280; margin-top: 8px;">
+                💡 Pertama kali? <a href="#" onclick="showSheetGuide(); return false;" style="color: var(--primary);">Klik untuk panduan setup Google Sheets (2 menit)</a>
             </div>
         </div>
         <div class="table-wrapper">
@@ -1104,18 +1108,23 @@
         }
     }
 
-    function exportExcel() {
+    function getFilteredApprovalData() {
         const filterDate = document.getElementById('filterDate').value.toLowerCase();
         const filterFlight = document.getElementById('filterFlight').value.toLowerCase();
         const filterRoute = document.getElementById('filterRoute').value.toLowerCase();
         const filterStatus = document.getElementById('filterStatus').value.toLowerCase();
-        
-        const filtered = approvalData.filter(item =>
-            item.date.toLowerCase().includes(filterDate) &&
-            item.flightNo.toLowerCase().includes(filterFlight) &&
-            item.route.toLowerCase().includes(filterRoute) &&
-            item.status.toLowerCase().includes(filterStatus)
-        );
+
+        return approvalData.filter(item => {
+            const matchDate = !filterDate || item.date.toLowerCase().includes(filterDate);
+            const matchFlight = !filterFlight || item.flightNo.toLowerCase().includes(filterFlight);
+            const matchRoute = !filterRoute || item.route.toLowerCase().includes(filterRoute);
+            const matchStatus = !filterStatus || item.status.toLowerCase().includes(filterStatus);
+            return matchDate && matchFlight && matchRoute && matchStatus;
+        });
+    }
+
+    function exportExcel() {
+        const filtered = getFilteredApprovalData();
 
         // Siapkan data untuk Excel
         const wsData = [
@@ -1159,6 +1168,89 @@
         // Export
         const fileName = `Data_Approval_PM89_${new Date().toISOString().split('T')[0]}.xlsx`;
         XLSX.writeFile(wb, fileName);
+    }
+
+    async function syncToGoogleSheet() {
+        const sheetUrl = localStorage.getItem('googleSheetWebhook');
+        let webhook = sheetUrl;
+        
+        if (!webhook) {
+            webhook = prompt('Masukkan URL Web App Google Apps Script kamu:\n\n(Cara buat: lihat panduan di bawah tombol)');
+            if (!webhook) return;
+            localStorage.setItem('googleSheetWebhook', webhook);
+        }
+
+        const filtered = getFilteredApprovalData();
+        if (filtered.length === 0) {
+            alert('Tidak ada data untuk di-sync!');
+            return;
+        }
+
+        const payload = filtered.map(item => ({
+            date: item.date,
+            flightNo: item.flightNo,
+            route: item.route,
+            qtyPax: item.qtyPax,
+            status: item.status,
+            about: item.about,
+            airlines: item.airlines,
+            estCost: item.estCost,
+            stdLt: item.stdLt,
+            etdLt: item.etdLt,
+            estDelay: item.estDelay
+        }));
+
+        try {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = '⏳ Syncing...';
+            
+            const response = await fetch(webhook, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data: payload })
+            });
+            
+            btn.disabled = false;
+            btn.textContent = '🔄 Sync ke Google Sheets';
+            alert(`✅ ${payload.length} data berhasil dikirim ke Google Sheets!\n\nBuka Google Sheet kamu untuk melihat hasilnya.`);
+        } catch (error) {
+            alert('❌ Gagal sync. Cek URL Web App dan pastikan sudah di-deploy sebagai "Anyone".\n\nError: ' + error.message);
+            localStorage.removeItem('googleSheetWebhook');
+        }
+    }
+
+    function showSheetGuide() {
+        const guide = `PANDUAN SYNC GOOGLE SHEETS (2 MENIT):
+
+1. Buka https://sheets.google.com → Buat Sheet baru
+2. Buka https://script.google.com → New Project
+3. Paste kode ini:
+
+function doPost(e) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const data = JSON.parse(e.postData.contents).data;
+  
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['Date','Flight No','Route','Qty Pax','Status','About','Airlines','Est Cost','STD Lt','ETD Lt','Est Delay']);
+  }
+  
+  data.forEach(row => {
+    sheet.appendRow([row.date, row.flightNo, row.route, row.qtyPax, row.status, row.about, row.airlines, row.estCost, row.stdLt, row.etdLt, row.estDelay]);
+  });
+  
+  return ContentService.createTextOutput('OK');
+}
+
+4. Deploy → New deployment → Type: Web app
+   - Execute as: Me
+   - Who has access: Anyone
+5. Copy URL Web App → Paste di aplikasi ini
+
+Selesai! Sekarang klik Sync lagi.`;
+        
+        alert(guide);
     }
 
     function renderDashboard() {
