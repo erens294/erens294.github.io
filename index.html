@@ -840,9 +840,42 @@
     }
 
     // Utility Functions
+    // Auto-detect UTC untuk bandara Indonesia (tanpa buka Parameter)
+    const AUTO_UTC_MAP = {
+        // WIB UTC+7 - Sumatra, Jawa, Kalimantan Barat/Tengah
+        'CGK': '7:00', 'WIII': '7:00', 'WII': '7:00', 'HLP': '7:00', 'WIHH': '7:00',
+        'BDO': '7:00', 'WICC': '7:00', 'KNO': '7:00', 'WIMM': '7:00', 'PLM': '7:00', 'WIPP': '7:00',
+        'PDG': '7:00', 'WIEE': '7:00', 'PKU': '7:00', 'WIBB': '7:00', 'DJB': '7:00', 'WIPA': '7:00',
+        'BTH': '7:00', 'WIDD': '7:00', 'PGK': '7:00', 'WIPK': '7:00', 'TJQ': '7:00', 'WIKT': '7:00',
+        'PNK': '7:00', 'WIOO': '7:00', 'SUB': '7:00', 'WARR': '7:00', 'WAR': '7:00', 'SRG': '7:00', 'WARS': '7:00',
+        'SOC': '7:00', 'WAHQ': '7:00', 'YIA': '7:00', 'WAHI': '7:00', 'JOG': '7:00',
+        // WITA UTC+8 - Bali, Sulawesi, Nusa Tenggara, Kalimantan Timur/Selatan
+        'DPS': '8:00', 'WADD': '8:00', 'WAD': '8:00', 'LOP': '8:00', 'WADL': '8:00',
+        'UPG': '8:00', 'WAAA': '8:00', 'WAA': '8:00', 'MDC': '8:00', 'WAMM': '8:00',
+        'PLW': '8:00', 'WAML': '8:00', 'KDI': '8:00', 'WAWW': '8:00', 'BPN': '8:00', 'WALL': '8:00',
+        'TRK': '8:00', 'WALR': '8:00', 'BEJ': '8:00', 'WALK': '8:00', 'TMC': '8:00', 'WADT': '8:00',
+        'KOE': '8:00', 'WATT': '8:00', 'LBJ': '8:00', 'WATO': '8:00', 'MOF': '8:00', 'WATC': '8:00',
+        // WIT UTC+9 - Papua, Maluku
+        'DJJ': '9:00', 'WAJJ': '9:00', 'WAJ': '9:00', 'TIM': '9:00', 'WABP': '9:00',
+        'BIK': '9:00', 'WABB': '9:00', 'WAB': '9:00', 'SOQ': '9:00', 'WASS': '9:00',
+        'MKW': '9:00', 'WASR': '9:00', 'TTE': '9:00', 'WAEE': '9:00', 'AMQ': '9:00', 'WAPP': '9:00'
+    };
+
     function getParameterUTC(sto) {
-        const param = parameters.find(p => p.sto === sto.toUpperCase());
-        return param ? param.utc : '7:00';
+        const code = sto.toUpperCase();
+        const param = parameters.find(p => p.sto === code);
+        if (param) return param.utc;
+        // Auto-detect dari map
+        if (AUTO_UTC_MAP[code]) return AUTO_UTC_MAP[code];
+        // Fallback berdasarkan wilayah ICAO
+        if (code.startsWith('WI')) return '7:00'; // Western Indonesia
+        if (code.startsWith('WA')) {
+            // Papua dan sebagian Maluku = +9
+            if (['WAJ','WAB','WAP','WAS','WAE'].some(p => code.startsWith(p))) return '9:00';
+            return '8:00'; // Sulawesi, Bali, NTT, NTB
+        }
+        if (code.startsWith('WB')) return '8:00'; // Kalimantan
+        return '7:00';
     }
 
     function parseUtcOffset(utcStr) {
@@ -861,18 +894,23 @@
     }
 
     function calculateTimeDiff(time1, time2) {
-        if (!time1 || !time2) return { hours: 0, minutes: 0, totalMinutes: 0, display: '00:00' };
+        if (!time1 || !time2) return { hours: 0, minutes: 0, totalMinutes: 0, display: '00:00', isNextDay: false };
         const [h1, m1] = time1.split(':').map(Number);
         const [h2, m2] = time2.split(':').map(Number);
         let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
-        if (diff < 0) diff += 1440;
+        let isNextDay = false;
+        if (diff < 0) {
+            diff += 1440;
+            isNextDay = true;
+        }
         const hours = Math.floor(diff / 60);
         const minutes = diff % 60;
         return {
             hours,
             minutes,
             totalMinutes: diff,
-            display: `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+            display: `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`,
+            isNextDay
         };
     }
 
@@ -959,6 +997,7 @@
             const stdLt = addUtcOffset(item.stdUtc, utcOffset);
             const etdLt = addUtcOffset(item.etdUtc, utcOffset);
             const estDelay = calculateTimeDiff(item.stdUtc, item.etdUtc);
+            const etdLtDisplay = etdLt + (estDelay.isNextDay ? ' (+1)' : '');
             const delayNow = calculateDelayNow(stdLt, item.dateOfFlight);
             const airlines = getAirlines(item.flightNo);
             const status = item.status || getStatus(estDelay.totalMinutes);
@@ -981,8 +1020,8 @@
                 <td>${stoCode}</td>
                 <td>${item.route}</td>
                 <td>${stdLt}</td>
-                <td>${etdLt}</td>
-                <td><span class="badge ${getDelayClass(estDelay.totalMinutes)}">${estDelay.display}</span></td>
+                <td>${etdLtDisplay}</td>
+                <td><span class="badge ${getDelayClass(estDelay.totalMinutes)}">${estDelay.display}${estDelay.isNextDay ? ' (+1)' : ''}</span></td>
                 <td><span class="badge ${delayNow.expired ? '' : getDelayClass(delayNow.minutes)}" id="delayNow-${item.id}">${delayNow.display}</span></td>
                 <td class="about-cell" title="${item.about}">${item.about || '-'}</td>
                 <td>${item.timeOcl}</td>
@@ -1037,7 +1076,7 @@
 
     function updateDelayNow() {
         formData.forEach(item => {
-            const stoCode = item.route.split('-')[0] || item.route.substring(0, 3);
+            const stoCode = item.route.substring(0, 3).toUpperCase();
             const utcOffset = getParameterUTC(stoCode);
             const stdLt = addUtcOffset(item.stdUtc, utcOffset);
             const delayNow = calculateDelayNow(stdLt, item.dateOfFlight);
@@ -1098,11 +1137,12 @@
     function saveToApproval(id) {
         const item = formData.find(d => d.id === id);
         if (!item) return;
-        const stoCode = item.route.split('-')[0] || item.route.substring(0, 3);
+        const stoCode = item.route.substring(0, 3).toUpperCase();
         const utcOffset = getParameterUTC(stoCode);
         const stdLt = addUtcOffset(item.stdUtc, utcOffset);
         const etdLt = addUtcOffset(item.etdUtc, utcOffset);
         const estDelay = calculateTimeDiff(item.stdUtc, item.etdUtc);
+            const etdLtDisplay = etdLt + (estDelay.isNextDay ? ' (+1)' : '');
         
         const approvalItem = {
             id: Date.now(),
@@ -1645,11 +1685,12 @@ function resetDashboardFilters(){
             return;
         }
 
-        const stoCode = item.route.split('-')[0] || item.route.substring(0, 3);
+        const stoCode = item.route.substring(0, 3).toUpperCase();
         const utcOffset = getParameterUTC(stoCode);
         const stdLt = addUtcOffset(item.stdUtc, utcOffset);
         const etdLt = addUtcOffset(item.etdUtc, utcOffset);
         const estDelay = calculateTimeDiff(item.stdUtc, item.etdUtc);
+            const etdLtDisplay = etdLt + (estDelay.isNextDay ? ' (+1)' : '');
 
         const letter = `Kepada Yth,
 Bapak Achmad Yani
@@ -1783,7 +1824,7 @@ CS Ground`;
     // Auto-convert UTC to Local
     function updateUtcPreviews() {
         const route = document.getElementById('route').value.toUpperCase();
-        const stoCode = route.split('-')[0] || route.substring(0, 3);
+        const stoCode = route.substring(0, 3).toUpperCase();
         const stdUtc = document.getElementById('stdUtc').value;
         const etdUtc = document.getElementById('etdUtc').value;
         const oclUtc = document.getElementById('timeOcl').value;
@@ -1805,6 +1846,9 @@ CS Ground`;
         const etdLocal = etdUtc ? addUtcOffset(etdUtc, utcOffset) : '';
         const oclLocal = oclUtc ? addUtcOffset(oclUtc, utcOffset) : '';
         
+        // Cek apakah lewat hari
+        const diff = calculateTimeDiff(stdUtc, etdUtc);
+        
         const stdEl = document.getElementById('stdLocalPreview');
         const etdEl = document.getElementById('etdLocalPreview');
         const oclEl = document.getElementById('oclLocalPreview');
@@ -1818,7 +1862,8 @@ CS Ground`;
         }
         
         if (etdLocal) {
-            etdEl.textContent = `→ ${etdLocal} ${offsetLabel} (${stoCode})`;
+            const plusOne = diff.isNextDay ? ' (+1)' : '';
+            etdEl.textContent = `→ ${etdLocal}${plusOne} ${offsetLabel} (${stoCode})`;
             etdEl.className = 'utc-preview';
         } else {
             etdEl.textContent = 'Masukkan ETD UTC';
