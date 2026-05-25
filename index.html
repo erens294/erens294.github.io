@@ -490,7 +490,7 @@
                     </div>
                     <div class="form-group">
                         <label>Route *</label>
-                        <input type="text" id="route" placeholder="CGK-UPG" required>
+                        <input type="text" id="route" placeholder="CGK-UPG" required minlength="3" oninput="this.value=this.value.toUpperCase()">
                     </div>
                     <div class="form-group">
                         <label>Schedule Time Departure UTC *</label>
@@ -610,6 +610,7 @@
                     <tr>
                         <th>Date</th>
                         <th>Flight No</th>
+                        <th>STO</th>
                         <th>Route</th>
                         <th>Qty Pax</th>
                         <th>Status</th>
@@ -926,6 +927,11 @@
             about: document.getElementById('about').value,
             timestamp: new Date().toISOString()
         };
+        // Validasi Route minimal 3 karakter untuk STO
+        if (!data.route || data.route.length < 3) {
+            alert('Route harus minimal 3 karakter (contoh: CGK, DPS, SUB)');
+            return;
+        }
         formData.push(data);
         saveFormData();
         renderFormData();
@@ -1098,7 +1104,7 @@
     function saveToApproval(id) {
         const item = formData.find(d => d.id === id);
         if (!item) return;
-        const stoCode = item.route.split('-')[0] || item.route.substring(0, 3);
+        const stoCode = item.route.substring(0, 3).toUpperCase();
         const utcOffset = getParameterUTC(stoCode);
         const stdLt = addUtcOffset(item.stdUtc, utcOffset);
         const etdLt = addUtcOffset(item.etdUtc, utcOffset);
@@ -1109,6 +1115,7 @@
             date: formatDate(item.dateOfFlight),
             isoDate: item.dateOfFlight,
             flightNo: item.flightNo,
+            sto: stoCode,
             route: item.route,
             qtyPax: item.qtyPax,
             status: item.status || getStatus(estDelay.totalMinutes),
@@ -1147,10 +1154,12 @@
         let total = 0;
         filtered.forEach(item => {
             total += item.estCost;
+            const stoCode = item.route ? item.route.substring(0,3).toUpperCase() : '';
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${item.date}</td>
                 <td><strong>${item.flightNo}</strong></td>
+                <td><strong>${stoCode}</strong></td>
                 <td>${item.route}</td>
                 <td>${item.qtyPax}</td>
                 <td><span class="badge badge-${item.status === 'On Time' ? 'success' : 'warning'}">${item.status}</span></td>
@@ -1204,13 +1213,15 @@
 
         // Siapkan data untuk Excel
         const wsData = [
-            ['Date', 'Flight No', 'Route', 'Qty Pax', 'Status', 'About', 'Airlines', 'Est Cost PM89', 'STD Lt', 'ETD Lt', 'Est Delay']
+            ['Date', 'Flight No', 'STO', 'Route', 'Qty Pax', 'Status', 'About', 'Airlines', 'Est Cost PM89', 'STD Lt', 'ETD Lt', 'Est Delay']
         ];
         
         filtered.forEach(item => {
+            const stoCode = item.sto || (item.route ? item.route.substring(0,3).toUpperCase() : '');
             wsData.push([
                 item.date,
                 item.flightNo,
+                stoCode,
                 item.route,
                 item.qtyPax,
                 item.status,
@@ -1226,7 +1237,7 @@
         // Tambah baris total
         const total = filtered.reduce((sum, item) => sum + item.estCost, 0);
         wsData.push([]);
-        wsData.push(['', '', '', '', '', '', 'GRAND TOTAL', total]);
+        wsData.push(['', '', '', '', '', '', '', 'GRAND TOTAL', total]);
 
         // Buat workbook
         const wb = XLSX.utils.book_new();
@@ -1234,7 +1245,7 @@
         
         // Atur lebar kolom
         ws['!cols'] = [
-            { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 8 },
+            { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 10 }, { wch: 8 },
             { wch: 14 }, { wch: 25 }, { wch: 15 }, { wch: 15 },
             { wch: 8 }, { wch: 8 }, { wch: 10 }
         ];
