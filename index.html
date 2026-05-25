@@ -610,7 +610,6 @@
                     <tr>
                         <th>Date</th>
                         <th>Flight No</th>
-                        <th>STO</th>
                         <th>Route</th>
                         <th>Qty Pax</th>
                         <th>Status</th>
@@ -927,11 +926,6 @@
             about: document.getElementById('about').value,
             timestamp: new Date().toISOString()
         };
-        // Validasi Route minimal 3 karakter untuk STO
-        if (!data.route || data.route.length < 3) {
-            alert('Route harus minimal 3 karakter (contoh: CGK, DPS, SUB)');
-            return;
-        }
         formData.push(data);
         saveFormData();
         renderFormData();
@@ -960,7 +954,7 @@
         );
 
         filtered.forEach((item, index) => {
-            const stoCode = item.route.split('-')[0] || item.route.substring(0, 3);
+            const stoCode = item.route ? item.route.substring(0, 3).toUpperCase() : '';
             const utcOffset = getParameterUTC(stoCode);
             const stdLt = addUtcOffset(item.stdUtc, utcOffset);
             const etdLt = addUtcOffset(item.etdUtc, utcOffset);
@@ -1043,7 +1037,7 @@
 
     function updateDelayNow() {
         formData.forEach(item => {
-            const stoCode = item.route.split('-')[0] || item.route.substring(0, 3);
+            const stoCode = item.route ? item.route.substring(0, 3).toUpperCase() : '';
             const utcOffset = getParameterUTC(stoCode);
             const stdLt = addUtcOffset(item.stdUtc, utcOffset);
             const delayNow = calculateDelayNow(stdLt, item.dateOfFlight);
@@ -1104,7 +1098,7 @@
     function saveToApproval(id) {
         const item = formData.find(d => d.id === id);
         if (!item) return;
-        const stoCode = item.route.substring(0, 3).toUpperCase();
+        const stoCode = item.route ? item.route.substring(0, 3).toUpperCase() : '';
         const utcOffset = getParameterUTC(stoCode);
         const stdLt = addUtcOffset(item.stdUtc, utcOffset);
         const etdLt = addUtcOffset(item.etdUtc, utcOffset);
@@ -1115,7 +1109,6 @@
             date: formatDate(item.dateOfFlight),
             isoDate: item.dateOfFlight,
             flightNo: item.flightNo,
-            sto: stoCode,
             route: item.route,
             qtyPax: item.qtyPax,
             status: item.status || getStatus(estDelay.totalMinutes),
@@ -1154,12 +1147,10 @@
         let total = 0;
         filtered.forEach(item => {
             total += item.estCost;
-            const stoCode = item.route ? item.route.substring(0,3).toUpperCase() : '';
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${item.date}</td>
                 <td><strong>${item.flightNo}</strong></td>
-                <td><strong>${stoCode}</strong></td>
                 <td>${item.route}</td>
                 <td>${item.qtyPax}</td>
                 <td><span class="badge badge-${item.status === 'On Time' ? 'success' : 'warning'}">${item.status}</span></td>
@@ -1213,15 +1204,13 @@
 
         // Siapkan data untuk Excel
         const wsData = [
-            ['Date', 'Flight No', 'STO', 'Route', 'Qty Pax', 'Status', 'About', 'Airlines', 'Est Cost PM89', 'STD Lt', 'ETD Lt', 'Est Delay']
+            ['Date', 'Flight No', 'Route', 'Qty Pax', 'Status', 'About', 'Airlines', 'Est Cost PM89', 'STD Lt', 'ETD Lt', 'Est Delay']
         ];
         
         filtered.forEach(item => {
-            const stoCode = item.sto || (item.route ? item.route.substring(0,3).toUpperCase() : '');
             wsData.push([
                 item.date,
                 item.flightNo,
-                stoCode,
                 item.route,
                 item.qtyPax,
                 item.status,
@@ -1237,7 +1226,7 @@
         // Tambah baris total
         const total = filtered.reduce((sum, item) => sum + item.estCost, 0);
         wsData.push([]);
-        wsData.push(['', '', '', '', '', '', '', 'GRAND TOTAL', total]);
+        wsData.push(['', '', '', '', '', '', 'GRAND TOTAL', total]);
 
         // Buat workbook
         const wb = XLSX.utils.book_new();
@@ -1245,7 +1234,7 @@
         
         // Atur lebar kolom
         ws['!cols'] = [
-            { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 10 }, { wch: 8 },
+            { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 8 },
             { wch: 14 }, { wch: 25 }, { wch: 15 }, { wch: 15 },
             { wch: 8 }, { wch: 8 }, { wch: 10 }
         ];
@@ -1412,7 +1401,7 @@ Selesai!`;
         // Filter data based on selections
         let filteredData = approvalData.filter(item => {
             const itemDate = item.isoDate ? new Date(item.isoDate) : new Date();
-            const itemStation = item.route ? item.route.split('-')[0].toUpperCase() : '';
+            const itemStation = item.route ? item.route.substring(0, 3).toUpperCase() : '';
             
             if (selectedStation !== 'all' && itemStation !== selectedStation) return false;
             if (selectedYearDash !== 'all' && itemDate.getFullYear() != selectedYearDash) return false;
@@ -1431,7 +1420,7 @@ Selesai!`;
         approvalData.forEach(item => {
             const itemDate = item.isoDate ? new Date(item.isoDate) : new Date();
             years.add(itemDate.getFullYear());
-            const st = item.route ? item.route.split('-')[0].toUpperCase() : '';
+            const st = item.route ? item.route.substring(0, 3).toUpperCase() : '';
             if(st) stations.add(st);
         });
 
@@ -1645,7 +1634,7 @@ function resetDashboardFilters(){
             return;
         }
 
-        const stoCode = item.route.split('-')[0] || item.route.substring(0, 3);
+        const stoCode = item.route ? item.route.substring(0, 3).toUpperCase() : '';
         const utcOffset = getParameterUTC(stoCode);
         const stdLt = addUtcOffset(item.stdUtc, utcOffset);
         const etdLt = addUtcOffset(item.etdUtc, utcOffset);
@@ -1783,7 +1772,7 @@ CS Ground`;
     // Auto-convert UTC to Local
     function updateUtcPreviews() {
         const route = document.getElementById('route').value.toUpperCase();
-        const stoCode = route.split('-')[0] || route.substring(0, 3);
+        const stoCode = route ? route.substring(0, 3).toUpperCase() : '';
         const stdUtc = document.getElementById('stdUtc').value;
         const etdUtc = document.getElementById('etdUtc').value;
         const oclUtc = document.getElementById('timeOcl').value;
