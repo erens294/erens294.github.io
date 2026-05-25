@@ -1152,11 +1152,11 @@
                 <td>${item.date}</td>
                 <td><strong>${item.flightNo}</strong></td>
                 <td>${item.route}</td>
-                <td>${item.qtyPax}</td>
+                <td><input type="number" min="0" value="${item.qtyPax}" onchange="updateApprovalQty(${item.id}, this.value)" style="width: 80px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px;"></td>
                 <td><span class="badge badge-${item.status === 'On Time' ? 'success' : 'warning'}">${item.status}</span></td>
                 <td class="about-cell" title="${item.about}" style="width: 200px;">${item.about || '-'}</td>
                 <td>${item.airlines}</td>
-                <td><input type="number" value="${item.estCost}" onchange="updateEstCost(${item.id}, this.value)" style="width: 120px; padding: 4px; border: 1px solid var(--border); border-radius: 4px;"></td>
+                <td><span style="font-weight: 600; color: var(--primary);">Rp ${item.estCost.toLocaleString('id-ID')}</span></td>
                 <td><button class="btn btn-sm btn-danger" onclick="deleteApproval(${item.id})">Delete</button></td>
             `;
             tbody.appendChild(tr);
@@ -1169,6 +1169,17 @@
         const item = approvalData.find(d => d.id === id);
         if (item) {
             item.estCost = parseInt(value) || 0;
+            saveApprovalData();
+            renderApprovalData();
+            renderDashboard();
+        }
+    }
+
+    function updateApprovalQty(id, value) {
+        const item = approvalData.find(d => d.id === id);
+        if (item) {
+            item.qtyPax = parseInt(value) || 0;
+            item.estCost = item.qtyPax * 300000; // otomatis = Qty Pax × 300.000
             saveApprovalData();
             renderApprovalData();
             renderDashboard();
