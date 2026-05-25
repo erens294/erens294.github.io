@@ -954,7 +954,7 @@
         );
 
         filtered.forEach((item, index) => {
-            const stoCode = item.route ? item.route.substring(0, 3).toUpperCase() : '';
+            const stoCode = item.route.split('-')[0] || item.route.substring(0, 3);
             const utcOffset = getParameterUTC(stoCode);
             const stdLt = addUtcOffset(item.stdUtc, utcOffset);
             const etdLt = addUtcOffset(item.etdUtc, utcOffset);
@@ -1037,7 +1037,7 @@
 
     function updateDelayNow() {
         formData.forEach(item => {
-            const stoCode = item.route ? item.route.substring(0, 3).toUpperCase() : '';
+            const stoCode = item.route.split('-')[0] || item.route.substring(0, 3);
             const utcOffset = getParameterUTC(stoCode);
             const stdLt = addUtcOffset(item.stdUtc, utcOffset);
             const delayNow = calculateDelayNow(stdLt, item.dateOfFlight);
@@ -1098,7 +1098,7 @@
     function saveToApproval(id) {
         const item = formData.find(d => d.id === id);
         if (!item) return;
-        const stoCode = item.route ? item.route.substring(0, 3).toUpperCase() : '';
+        const stoCode = item.route.split('-')[0] || item.route.substring(0, 3);
         const utcOffset = getParameterUTC(stoCode);
         const stdLt = addUtcOffset(item.stdUtc, utcOffset);
         const etdLt = addUtcOffset(item.etdUtc, utcOffset);
@@ -1401,7 +1401,7 @@ Selesai!`;
         // Filter data based on selections
         let filteredData = approvalData.filter(item => {
             const itemDate = item.isoDate ? new Date(item.isoDate) : new Date();
-            const itemStation = item.route ? item.route.substring(0, 3).toUpperCase() : '';
+            const itemStation = item.route ? item.route.split('-')[0].toUpperCase() : '';
             
             if (selectedStation !== 'all' && itemStation !== selectedStation) return false;
             if (selectedYearDash !== 'all' && itemDate.getFullYear() != selectedYearDash) return false;
@@ -1420,7 +1420,7 @@ Selesai!`;
         approvalData.forEach(item => {
             const itemDate = item.isoDate ? new Date(item.isoDate) : new Date();
             years.add(itemDate.getFullYear());
-            const st = item.route ? item.route.substring(0, 3).toUpperCase() : '';
+            const st = item.route ? item.route.split('-')[0].toUpperCase() : '';
             if(st) stations.add(st);
         });
 
@@ -1634,7 +1634,7 @@ function resetDashboardFilters(){
             return;
         }
 
-        const stoCode = item.route ? item.route.substring(0, 3).toUpperCase() : '';
+        const stoCode = item.route.split('-')[0] || item.route.substring(0, 3);
         const utcOffset = getParameterUTC(stoCode);
         const stdLt = addUtcOffset(item.stdUtc, utcOffset);
         const etdLt = addUtcOffset(item.etdUtc, utcOffset);
@@ -1772,7 +1772,7 @@ CS Ground`;
     // Auto-convert UTC to Local
     function updateUtcPreviews() {
         const route = document.getElementById('route').value.toUpperCase();
-        const stoCode = route ? route.substring(0, 3).toUpperCase() : '';
+        const stoCode = route.split('-')[0] || route.substring(0, 3);
         const stdUtc = document.getElementById('stdUtc').value;
         const etdUtc = document.getElementById('etdUtc').value;
         const oclUtc = document.getElementById('timeOcl').value;
