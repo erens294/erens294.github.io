@@ -954,7 +954,7 @@
         );
 
         filtered.forEach((item, index) => {
-            const stoCode = item.route.split('-')[0] || item.route.substring(0, 3);
+            const stoCode = item.route.substring(0, 3).toUpperCase();
             const utcOffset = getParameterUTC(stoCode);
             const stdLt = addUtcOffset(item.stdUtc, utcOffset);
             const etdLt = addUtcOffset(item.etdUtc, utcOffset);
