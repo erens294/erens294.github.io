@@ -611,11 +611,13 @@
                         <th>Date</th>
                         <th>Flight No</th>
                         <th>Route</th>
+                        <th>STO</th>
                         <th>Qty Pax</th>
                         <th>Status</th>
                         <th>About</th>
                         <th>Airlines</th>
                         <th>Est Cost PM89</th>
+                        <th>Remarks</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -802,6 +804,12 @@
     function loadData() {
         formData = JSON.parse(localStorage.getItem(STORAGE_KEYS.FORM_DATA) || '[]');
         approvalData = JSON.parse(localStorage.getItem(STORAGE_KEYS.APPROVAL_DATA) || '[]');
+        // Migrasi data lama: tambahkan remarks dan saved jika belum ada
+        approvalData = approvalData.map(item => ({
+            ...item,
+            remarks: item.remarks || '',
+            saved: item.saved || false
+        }));
         parameters = JSON.parse(localStorage.getItem(STORAGE_KEYS.PARAMETERS) || JSON.stringify(DEFAULT_PARAMETERS));
     }
 
@@ -1158,7 +1166,9 @@
             originalId: item.id,
             stdLt,
             etdLt,
-            estDelay: estDelay.display
+            estDelay: estDelay.display,
+            remarks: '',
+            saved: false
         };
         
         approvalData.push(approvalItem);
@@ -1188,16 +1198,23 @@
         filtered.forEach(item => {
             total += item.estCost;
             const tr = document.createElement('tr');
+            const sto = item.route ? item.route.substring(0,3).toUpperCase() : '';
+            const isSaved = item.saved || false;
             tr.innerHTML = `
                 <td>${item.date}</td>
                 <td><strong>${item.flightNo}</strong></td>
                 <td>${item.route}</td>
+                <td><span style="font-weight:600; color:var(--primary-dark)">${sto}</span></td>
                 <td><input type="number" min="0" value="${item.qtyPax}" onchange="updateApprovalQty(${item.id}, this.value)" style="width: 80px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px;"></td>
                 <td><span class="badge badge-${item.status === 'On Time' ? 'success' : 'warning'}">${item.status}</span></td>
                 <td class="about-cell" title="${item.about}" style="width: 200px;">${item.about || '-'}</td>
                 <td>${item.airlines}</td>
                 <td><span style="font-weight: 600; color: var(--primary);">Rp ${item.estCost.toLocaleString('id-ID')}</span></td>
-                <td><button class="btn btn-sm btn-danger" onclick="deleteApproval(${item.id})">Delete</button></td>
+                <td><input type="text" value="${item.remarks || ''}" onchange="updateApprovalRemarks(${item.id}, this.value)" placeholder="Input remarks" style="width: 140px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px;"></td>
+                <td>
+                    ${!isSaved ? `<button class="btn btn-sm btn-success" onclick="saveToDashboard(${item.id})" style="margin-right:4px">Save</button>` : `<span class="badge badge-success" style="margin-right:4px">Saved</span>`}
+                    <button class="btn btn-sm btn-danger" onclick="deleteApproval(${item.id})">Delete</button>
+                </td>
             `;
             tbody.appendChild(tr);
         });
@@ -1224,6 +1241,25 @@
             renderApprovalData();
             renderDashboard();
         }
+    function updateApprovalRemarks(id, value) {
+        const item = approvalData.find(d => d.id === id);
+        if (item) {
+            item.remarks = value;
+            saveApprovalData();
+        }
+    }
+
+    function saveToDashboard(id) {
+        const item = approvalData.find(d => d.id === id);
+        if (item) {
+            item.saved = true;
+            saveApprovalData();
+            renderApprovalData();
+            renderDashboard();
+            alert('Data berhasil di-save ke Dashboard!');
+        }
+    }
+
     }
 
     function deleteApproval(id) {
@@ -1255,19 +1291,22 @@
 
         // Siapkan data untuk Excel
         const wsData = [
-            ['Date', 'Flight No', 'Route', 'Qty Pax', 'Status', 'About', 'Airlines', 'Est Cost PM89', 'STD Lt', 'ETD Lt', 'Est Delay']
+            ['Date', 'Flight No', 'Route', 'STO', 'Qty Pax', 'Status', 'About', 'Airlines', 'Est Cost PM89', 'Remarks', 'STD Lt', 'ETD Lt', 'Est Delay']
         ];
         
         filtered.forEach(item => {
+            const sto = item.route ? item.route.substring(0,3).toUpperCase() : '';
             wsData.push([
                 item.date,
                 item.flightNo,
                 item.route,
+                sto,
                 item.qtyPax,
                 item.status,
                 item.about || '',
                 item.airlines,
                 item.estCost,
+                item.remarks || '',
                 item.stdLt || '',
                 item.etdLt || '',
                 item.estDelay || ''
@@ -1451,6 +1490,7 @@ Selesai!`;
 
         // Filter data based on selections
         let filteredData = approvalData.filter(item => {
+            if (!item.saved) return false;
             const itemDate = item.isoDate ? new Date(item.isoDate) : new Date();
             const itemStation = item.route ? item.route.split('-')[0].toUpperCase() : '';
             
@@ -1468,7 +1508,7 @@ Selesai!`;
         const years = new Set();
         const stations = new Set();
 
-        approvalData.forEach(item => {
+        approvalData.filter(i=>i.saved).forEach(item => {
             const itemDate = item.isoDate ? new Date(item.isoDate) : new Date();
             years.add(itemDate.getFullYear());
             const st = item.route ? item.route.split('-')[0].toUpperCase() : '';
