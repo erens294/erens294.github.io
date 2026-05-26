@@ -1309,6 +1309,26 @@
         }
     }
 
+    function updateApprovalQty(id, value) {
+        const item = approvalData.find(d => d.id === id);
+        if (item) {
+            item.qtyPax = parseInt(value) || 0;
+            saveApprovalData();
+            renderDashboard();
+        }
+    }
+
+    function updateApprovalEstCost(id, value) {
+        const item = approvalData.find(d => d.id === id);
+        if (item) {
+            // remove non-digit
+            const num = parseInt(value.toString().replace(/[^0-9]/g, '')) || 0;
+            item.estCost = num;
+            saveApprovalData();
+            renderDashboard();
+        }
+    }
+
     function saveToDashboard(id) {
         const item = approvalData.find(d => d.id === id);
         if (item) {
@@ -1769,8 +1789,8 @@ Selesai!`;
                     <td>${item.date}</td>
                     <td><strong>${item.flightNo}</strong></td>
                     <td>${item.route}</td>
-                    <td>${item.qtyPax}</td>
-                    <td>Rp ${item.estCost.toLocaleString('id-ID')}</td>
+                    <td><input type="number" value="${item.qtyPax}" onchange="updateApprovalQty(${item.id}, this.value)" style="width: 80px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; text-align: center;"></td>
+                    <td><input type="text" value="${item.estCost}" onchange="updateApprovalEstCost(${item.id}, this.value)" style="width: 120px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px;" placeholder="0"></td>
                     <td><input type="text" value="${item.remarks || ''}" oninput="updateApprovalRemarks(${item.id}, this.value)" placeholder="Edit remarks" style="width: 100%; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px;"></td>
                 `;
                 detailBody.appendChild(tr);
