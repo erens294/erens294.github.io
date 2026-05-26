@@ -1210,7 +1210,7 @@
                 <td class="about-cell" title="${item.about}" style="width: 200px;">${item.about || '-'}</td>
                 <td>${item.airlines}</td>
                 <td><span style="font-weight: 600; color: var(--primary);">Rp ${item.estCost.toLocaleString('id-ID')}</span></td>
-                <td><input type="text" value="${item.remarks || ''}" onchange="updateApprovalRemarks(${item.id}, this.value)" placeholder="Input remarks" style="width: 140px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px;"></td>
+                <td><input type="text" value="${item.remarks || ''}" oninput="updateApprovalRemarks(${item.id}, this.value)" placeholder="Input remarks (auto-save)" style="width: 140px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px;"></td>
                 <td>
                     ${!isSaved ? `<button class="btn btn-sm btn-success" onclick="saveToDashboard(${item.id})" style="margin-right:4px">Save</button>` : `<span class="badge badge-success" style="margin-right:4px">Saved</span>`}
                     <button class="btn btn-sm btn-danger" onclick="deleteApproval(${item.id})">Delete</button>
@@ -1241,6 +1241,8 @@
             renderApprovalData();
             renderDashboard();
         }
+    }
+
     function updateApprovalRemarks(id, value) {
         const item = approvalData.find(d => d.id === id);
         if (item) {
@@ -1256,10 +1258,13 @@
             saveApprovalData();
             renderApprovalData();
             renderDashboard();
+            // otomatis pindah ke tab Dashboard
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector('[data-tab="dashboard"]').classList.add('active');
+            document.getElementById('dashboard').classList.add('active');
             alert('Data berhasil di-save ke Dashboard!');
         }
-    }
-
     }
 
     function deleteApproval(id) {
