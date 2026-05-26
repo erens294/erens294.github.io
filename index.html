@@ -830,7 +830,7 @@
         approvalData = approvalData.map(item => ({
             ...item,
             remarks: item.remarks || '',
-            saved: item.saved || false
+            saved: item.saved !== undefined ? item.saved : true
         }));
         parameters = JSON.parse(localStorage.getItem(STORAGE_KEYS.PARAMETERS) || JSON.stringify(DEFAULT_PARAMETERS));
     }
@@ -890,18 +890,17 @@
         }, 2000); // tunggu 2 detik setelah perubahan terakhir
     }
 
-    // Auto delete data after 7 days
+    // Auto delete data after 7 days - DINONAKTIFKAN sesuai permintaan user
+    // Data sekarang tersimpan permanen sampai dihapus manual
     function autoDeleteOldData() {
-        const now = new Date();
-        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        formData = formData.filter(item => {
-            const flightDate = new Date(item.dateOfFlight);
-            return flightDate >= sevenDaysAgo;
-        });
-        saveFormData();
-        if (document.getElementById('home').classList.contains('active')) {
-            renderFormData();
-        }
+        // const now = new Date();
+        // const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        // formData = formData.filter(item => {
+        //     const flightDate = new Date(item.dateOfFlight);
+        //     return flightDate >= sevenDaysAgo;
+        // });
+        // saveFormData();
+        console.log('Auto-delete dinonaktifkan - data tersimpan permanen');
     }
 
     // Utility Functions
@@ -1225,14 +1224,18 @@
             etdLt,
             estDelay: estDelay.display,
             remarks: '',
-            saved: false
+            saved: true
         };
         
         approvalData.push(approvalItem);
+        // Hapus dari Form Data agar tidak duplikat, tapi data tetap ada di Approval & Dashboard
+        formData = formData.filter(d => d.id !== id);
+        saveFormData();
         saveApprovalData();
+        renderFormData();
         renderApprovalData();
         renderDashboard();
-        alert('Data berhasil di-save ke Data Approval!');
+        alert('Data berhasil di-save! Otomatis masuk ke Dashboard dan akan tersimpan permanen sampai dihapus manual.');
     }
 
     function renderApprovalData() {
