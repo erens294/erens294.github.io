@@ -703,6 +703,28 @@
                 </table>
             </div>
         </div>
+        
+        <div class="card" style="margin-top:20px">
+            <div class="toolbar" style="justify-content: space-between;">
+                <div class="section-title" style="font-size: 16px; margin: 0;">📝 Detail Data & Remarks (Editable)</div>
+                <button class="btn btn-success" onclick="exportDashboardExcel()">📥 Export Remarks to Excel</button>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Flight</th>
+                            <th>Route</th>
+                            <th>Qty</th>
+                            <th>Est Cost</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dashboardDetailBody"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <!-- PARAMETER TAB -->
@@ -823,14 +845,49 @@
 
     function saveFormData() {
         localStorage.setItem(STORAGE_KEYS.FORM_DATA, JSON.stringify(formData));
+        autoSyncToSheet();
     }
 
     function saveApprovalData() {
         localStorage.setItem(STORAGE_KEYS.APPROVAL_DATA, JSON.stringify(approvalData));
+        autoSyncToSheet();
     }
 
     function saveParameters() {
         localStorage.setItem(STORAGE_KEYS.PARAMETERS, JSON.stringify(parameters));
+        autoSyncToSheet();
+    }
+
+    // Auto-sync tanpa klik tombol (debounced 2 detik)
+    let autoSyncTimer = null;
+    function autoSyncToSheet() {
+        const webhook = localStorage.getItem('googleSheetWebhook');
+        if (!webhook) return; // belum setup, skip
+        
+        clearTimeout(autoSyncTimer);
+        autoSyncTimer = setTimeout(async () => {
+            try {
+                const payload = {
+                    action: 'push',
+                    formData: formData,
+                    approvalData: approvalData,
+                    parameters: parameters,
+                    timestamp: new Date().toISOString(),
+                    auto: true
+                };
+                await fetch(webhook, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                localStorage.setItem('lastSync', new Date().toLocaleString('id-ID'));
+                console.log('✅ Auto-sync ke Sheet berhasil', localStorage.getItem('lastSync'));
+                // tampilkan indikator kecil di console, tidak ganggu UI
+            } catch (e) {
+                console.warn('Auto-sync gagal:', e);
+            }
+        }, 2000); // tunggu 2 detik setelah perubahan terakhir
     }
 
     // Auto delete data after 7 days
@@ -1210,7 +1267,7 @@
                 <td class="about-cell" title="${item.about}" style="width: 200px;">${item.about || '-'}</td>
                 <td>${item.airlines}</td>
                 <td><span style="font-weight: 600; color: var(--primary);">Rp ${item.estCost.toLocaleString('id-ID')}</span></td>
-                <td><input type="text" value="${item.remarks || ''}" oninput="updateApprovalRemarks(${item.id}, this.value)" placeholder="Input remarks (auto-save)" style="width: 140px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px;"></td>
+                <td><input type="text" value="${item.remarks || ''}" onchange="updateApprovalRemarks(${item.id}, this.value)" placeholder="Input remarks" style="width: 140px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px;"></td>
                 <td>
                     ${!isSaved ? `<button class="btn btn-sm btn-success" onclick="saveToDashboard(${item.id})" style="margin-right:4px">Save</button>` : `<span class="badge badge-success" style="margin-right:4px">Saved</span>`}
                     <button class="btn btn-sm btn-danger" onclick="deleteApproval(${item.id})">Delete</button>
@@ -1241,8 +1298,6 @@
             renderApprovalData();
             renderDashboard();
         }
-    }
-
     function updateApprovalRemarks(id, value) {
         const item = approvalData.find(d => d.id === id);
         if (item) {
@@ -1258,13 +1313,10 @@
             saveApprovalData();
             renderApprovalData();
             renderDashboard();
-            // otomatis pindah ke tab Dashboard
-            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelector('[data-tab="dashboard"]').classList.add('active');
-            document.getElementById('dashboard').classList.add('active');
             alert('Data berhasil di-save ke Dashboard!');
         }
+    }
+
     }
 
     function deleteApproval(id) {
@@ -1338,6 +1390,54 @@
         
         // Export
         const fileName = `Data_Approval_PM89_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+    }
+
+    function exportDashboardExcel() {
+        // Export khusus remarks dari data yang sudah saved (sesuai filter dashboard)
+        const stationFilter = document.getElementById('stationFilter');
+        const yearFilterDash = document.getElementById('dashboardYearFilter');
+        const monthFilter = document.getElementById('dashboardMonthFilter');
+        const selectedStation = stationFilter ? stationFilter.value : 'all';
+        const selectedYearDash = yearFilterDash ? yearFilterDash.value : 'all';
+        const selectedMonth = monthFilter ? monthFilter.value : 'all';
+
+        let filteredData = approvalData.filter(item => {
+            if (!item.saved) return false;
+            const itemDate = item.isoDate ? new Date(item.isoDate) : new Date();
+            const itemStation = item.route ? item.route.split('-')[0].toUpperCase() : '';
+            if (selectedStation !== 'all' && itemStation !== selectedStation) return false;
+            if (selectedYearDash !== 'all' && itemDate.getFullYear() != selectedYearDash) return false;
+            if (selectedMonth !== 'all' && (itemDate.getMonth()+1) != selectedMonth) return false;
+            return true;
+        });
+
+        const wsData = [
+            ['Date', 'Flight No', 'Route', 'STO', 'Qty Pax', 'Status', 'About', 'Airlines', 'Est Cost PM89', 'Remarks', 'Last Update']
+        ];
+        
+        filteredData.forEach(item => {
+            const sto = item.route ? item.route.substring(0,3).toUpperCase() : '';
+            wsData.push([
+                item.date,
+                item.flightNo,
+                item.route,
+                sto,
+                item.qtyPax,
+                item.status,
+                item.about || '',
+                item.airlines,
+                item.estCost,
+                item.remarks || '',
+                new Date().toLocaleString('id-ID')
+            ]);
+        });
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        ws['!cols'] = [{wch:12},{wch:12},{wch:10},{wch:6},{wch:8},{wch:12},{wch:20},{wch:12},{wch:15},{wch:30},{wch:18}];
+        XLSX.utils.book_append_sheet(wb, ws, 'Remarks');
+        const fileName = `Remarks_PM89_${new Date().toISOString().split('T')[0]}.xlsx`;
         XLSX.writeFile(wb, fileName);
     }
 
@@ -1655,6 +1755,24 @@ Selesai!`;
                 }
             }
         });
+
+        // Render detail table with editable remarks
+        const detailBody = document.getElementById('dashboardDetailBody');
+        if (detailBody) {
+            detailBody.innerHTML = '';
+            filteredData.sort((a,b) => new Date(b.isoDate) - new Date(a.isoDate)).forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.date}</td>
+                    <td><strong>${item.flightNo}</strong></td>
+                    <td>${item.route}</td>
+                    <td>${item.qtyPax}</td>
+                    <td>Rp ${item.estCost.toLocaleString('id-ID')}</td>
+                    <td><input type="text" value="${item.remarks || ''}" oninput="updateApprovalRemarks(${item.id}, this.value)" placeholder="Edit remarks" style="width: 100%; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px;"></td>
+                `;
+                detailBody.appendChild(tr);
+            });
+        }
     }
 
 function resetDashboardFilters(){
