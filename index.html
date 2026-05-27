@@ -495,6 +495,53 @@
     /* Sesuaikan thead karena topbar sekarang lebih pendek (~48px) */
     thead { top: 48px !important; }
 
+
+    /* === Mobile optimization === */
+    .header-compact .nav-tabs {
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .header-compact .nav-tabs::-webkit-scrollbar { display: none; }
+    
+    @media (max-width: 768px) {
+        .topbar { position: sticky; top: 0; }
+        .header-compact {
+            padding: 6px 10px;
+            gap: 8px;
+        }
+        .header-compact .brand h1 {
+            font-size: 14px;
+            max-width: 90px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .header-compact .nav-tabs {
+            flex: 1;
+            justify-content: flex-start;
+            gap: 4px;
+        }
+        .header-compact .nav-tab {
+            padding: 8px 12px;
+            font-size: 13px;
+            white-space: nowrap;
+            scroll-snap-align: start;
+        }
+        .header-compact #helpToggle {
+            padding: 5px 8px;
+            font-size: 12px;
+        }
+        /* thead turun sedikit karena topbar bisa 44px di mobile */
+        thead { top: 44px !important; }
+        .tab-content { padding: 16px; }
+    }
+    /* indikator aktif lebih jelas */
+    .header-compact .nav-tab.active {
+        border-bottom-width: 3px;
+        border-bottom-color: #FFC107;
+        font-weight: 700;
+        box-shadow: inset 0 -3px 0 #FFC107;
+    }
+
 </style>
 </head>
 <body>
@@ -2245,5 +2292,87 @@ window.syncToGoogleSheet = async function(){
 }
 </script>
 <div id="onlineIndicator" style="position:fixed;bottom:16px;right:16px;padding:8px 12px;border-radius:20px;color:white;font-size:12px;font-weight:600;z-index:9999;background:#4CAF50;box-shadow:0 2px 8px rgba(0,0,0,0.2)">🟢 Online</div>
+
+<!-- === SUPABASE INTEGRATION === -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+<script>
+// GANTI dengan project kamu dari supabase.com
+const SUPABASE_URL = 'https://siteybxbbmxeiynwoqet.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpdGV5YnhiYm14ZWl5bndvcWV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzE4NTAsImV4cCI6MjA5NTQ0Nzg1MH0.X6vThjLTMgd7Qik3LWAj8_bsHIIThHxSW9w9WxYsD5k';
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Fungsi baru untuk sync ke Supabase
+async function syncToSupabase(payload) {
+  try {
+    const { data, error } = await supabaseClient
+      .from('delay_sjnam')
+      .upsert([{
+        id: 1, // single row, atau pakai payload.timestamp
+        form_data: payload.formData,
+        approval_data: payload.approvalData,
+        parameters: payload.parameters,
+        updated_at: new Date().toISOString()
+      }], { onConflict: 'id' });
+    
+    if (error) throw error;
+    console.log('✅ Supabase sync berhasil');
+    localStorage.setItem('lastSupabaseSync', new Date().toLocaleString('id-ID'));
+    return true;
+  } catch (e) {
+    console.error('Supabase sync gagal:', e);
+    return false;
+  }
+}
+
+// Patch fungsi sync yang sudah ada
+const _originalProcessQueue = window.processQueue;
+window.processQueue = async function() {
+  if (!navigator.onLine) return;
+  
+  // 1. Jalankan sync Google Sheet lama (jika ada)
+  if (typeof _originalProcessQueue === 'function') {
+    await _originalProcessQueue();
+  }
+  
+  // 2. Sync ke Supabase
+  const payload = {
+    formData, approvalData, parameters,
+    timestamp: new Date().toISOString()
+  };
+  await syncToSupabase(payload);
+  
+  // Update indikator
+  const btn = document.getElementById('syncStatus');
+  if (btn) btn.textContent = '✅ Supabase synced';
+};
+
+// Load data dari Supabase saat start
+async function loadFromSupabase() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('delay_sjnam')
+      .select('*')
+      .eq('id', 1)
+      .single();
+    
+    if (data && !error) {
+      if (data.form_data) formData = data.form_data;
+      if (data.approval_data) approvalData = data.approval_data;
+      if (data.parameters) parameters = data.parameters;
+      console.log('📥 Data dimuat dari Supabase');
+      // refresh UI
+      if (typeof renderFormData === 'function') renderFormData();
+      if (typeof renderApprovalData === 'function') renderApprovalData();
+    }
+  } catch(e) { console.warn('Supabase load skip', e); }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(loadFromSupabase, 1000);
+});
+</script>
+<!-- === END SUPABASE === -->
+
 </body>
 </html>
