@@ -274,6 +274,34 @@
         background: #f9fafb;
     }
 
+    /* FIX: kolom No selalu terlihat & header tidak nutup baris 1 */
+    .table-wrapper {
+        overflow-x: auto;
+        overflow-y: auto;
+        max-height: 65vh;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-top: 20px;
+    }
+
+    th:first-child,
+    td:first-child {
+        position: sticky;
+        left: 0;
+        min-width: 50px;
+        max-width: 50px;
+        background: white;
+        z-index: 5;
+        text-align: center;
+        border-right: 1px solid var(--border);
+        box-shadow: 2px 0 4px rgba(0,0,0,0.05);
+    }
+
+    thead th:first-child {
+        z-index: 16;
+        background: var(--secondary);
+    }
+
     .badge {
         padding: 4px 10px;
         border-radius: 12px;
