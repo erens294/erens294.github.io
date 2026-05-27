@@ -1239,8 +1239,8 @@
             tbody.appendChild(tr);
         });
         // pastikan scroll ke atas biar baris 1 kelihatan
-        document.querySelector('.table-wrapper').scrollTop = 0;
-        });
+        const wrapper = document.querySelector('.table-wrapper');
+        if(wrapper) wrapper.scrollTop = 0;
     }
 
     function calculateDelayNow(stdLt, flightDate) {
@@ -1414,8 +1414,8 @@
             tbody.appendChild(tr);
         });
         // pastikan scroll ke atas biar baris 1 kelihatan
-        document.querySelector('.table-wrapper').scrollTop = 0;
-        });
+        const wrapper = document.querySelector('.table-wrapper');
+        if(wrapper) wrapper.scrollTop = 0;
 
         document.getElementById('grandTotal').textContent = `Grand Total Est Cost PM89: Rp ${total.toLocaleString('id-ID')}`;
     }
@@ -2076,8 +2076,8 @@ CS Ground`;
             tbody.appendChild(tr);
         });
         // pastikan scroll ke atas biar baris 1 kelihatan
-        document.querySelector('.table-wrapper').scrollTop = 0;
-        });
+        const wrapper = document.querySelector('.table-wrapper');
+        if(wrapper) wrapper.scrollTop = 0;
     }
 
     function showAddStoModal() {
