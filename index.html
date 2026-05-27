@@ -4,39 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calculator Delay SJNAM</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
-    // OPTIMASI: debounce search biar tidak render tiap ketik
-    let searchTimeout;
-    document.getElementById('searchHome').addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            renderFormData();
-        }, 300);
-    });
-
-</script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
-    // OPTIMASI: debounce search biar tidak render tiap ketik
-    let searchTimeout;
-    document.getElementById('searchHome').addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            renderFormData();
-        }, 300);
-    });
-
-</script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js">
-    // OPTIMASI: debounce search biar tidak render tiap ketik
-    let searchTimeout;
-    document.getElementById('searchHome').addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            renderFormData();
-        }, 300);
-    });
-
-</script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <style>
     :root {
         --primary: #1e40af;
@@ -2290,6 +2260,18 @@ CS Ground`;
     }
 
     function setupListeners() {
+    // debounce search
+    let searchTimeout;
+    const searchEl = document.getElementById(\'searchHome\');
+    if (searchEl) {
+        searchEl.addEventListener(\'input\', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                renderFormData();
+            }, 300);
+        });
+    }
+
         document.getElementById('searchHome').addEventListener('input', renderFormData);
         document.getElementById('filterDate').addEventListener('input', renderApprovalData);
         document.getElementById('filterFlight').addEventListener('input', renderApprovalData);
@@ -2312,16 +2294,6 @@ CS Ground`;
     document.getElementById('stoModal').addEventListener('click', (e) => {
         if (e.target.id === 'stoModal') closeModal();
     });
-
-    // OPTIMASI: debounce search biar tidak render tiap ketik
-    let searchTimeout;
-    document.getElementById('searchHome').addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            renderFormData();
-        }, 300);
-    });
-
 </script>
 
 <script>
@@ -2419,31 +2391,11 @@ window.syncToGoogleSheet = async function(){
   queueSync(payload);
   await processQueue();
 }
-
-    // OPTIMASI: debounce search biar tidak render tiap ketik
-    let searchTimeout;
-    document.getElementById('searchHome').addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            renderFormData();
-        }, 300);
-    });
-
 </script>
 <div id="onlineIndicator" style="position:fixed;bottom:16px;right:16px;padding:8px 12px;border-radius:20px;color:white;font-size:12px;font-weight:600;z-index:9999;background:#4CAF50;box-shadow:0 2px 8px rgba(0,0,0,0.2)">🟢 Online</div>
 
 <!-- === SUPABASE INTEGRATION === -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js">
-    // OPTIMASI: debounce search biar tidak render tiap ketik
-    let searchTimeout;
-    document.getElementById('searchHome').addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            renderFormData();
-        }, 300);
-    });
-
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
 <script>
 // GANTI dengan project kamu dari supabase.com
 const SUPABASE_URL = 'https://siteybxbbmxeiynwoqet.supabase.co';
@@ -2520,16 +2472,6 @@ async function loadFromSupabase() {
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(loadFromSupabase, 1000);
 });
-
-    // OPTIMASI: debounce search biar tidak render tiap ketik
-    let searchTimeout;
-    document.getElementById('searchHome').addEventListener('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            renderFormData();
-        }, 300);
-    });
-
 </script>
 <!-- === END SUPABASE === -->
 
