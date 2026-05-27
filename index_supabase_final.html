@@ -1,0 +1,2378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator Delay SJNAM</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<style>
+    :root {
+        --primary: #1e40af;
+        --primary-dark: #1e3a8a;
+        --secondary: #f3f4f6;
+        --success: #4CAF50;
+        --warning: #FF9800;
+        --danger: #F44336;
+        --yellow: #FFC107;
+        --grey: #9E9E9E;
+        --text: #1f2937;
+        --border: #e5e7eb;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --radius: 8px;
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        color: var(--text);
+        min-height: 100vh;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: white;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+    }
+
+    .header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        color: white;
+        padding: 24px 32px;
+        text-align: center;
+    }
+
+    .header h1 {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+
+    .header p {
+        font-size: 14px;
+        opacity: 0.9;
+        margin-top: 4px;
+    }
+
+    .nav-tabs {
+        display: flex;
+        background: var(--secondary);
+        border-bottom: 2px solid var(--border);
+        overflow-x: auto;
+    }
+
+    .nav-tab {
+        padding: 16px 24px;
+        cursor: pointer;
+        border: none;
+        background: transparent;
+        font-size: 15px;
+        font-weight: 600;
+        color: #6b7280;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+        border-bottom: 3px solid transparent;
+    }
+
+    .nav-tab:hover {
+        background: rgba(30, 64, 175, 0.05);
+        color: var(--primary);
+    }
+
+    .nav-tab.active {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+        background: white;
+    }
+
+    .tab-content {
+        display: none;
+        padding: 32px;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-title {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-group label {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #4b5563;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 14px;
+        transition: all 0.2s;
+        background: white;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+    }
+
+    .btn-success {
+        background: var(--success);
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #43a047;
+    }
+
+    .btn-danger {
+        background: var(--danger);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #e53935;
+    }
+
+    .btn-warning {
+        background: var(--warning);
+        color: white;
+    }
+
+    .btn-warning:hover {
+        background: #fb8c00;
+    }
+
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .toolbar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .search-box {
+        flex: 1;
+        min-width: 250px;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 14px;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-top: 20px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    thead {
+        background: var(--secondary);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    th {
+        padding: 12px 10px;
+        text-align: left;
+        font-weight: 700;
+        color: #374151;
+        border-bottom: 2px solid var(--border);
+        white-space: nowrap;
+    }
+
+    td {
+        padding: 10px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr:hover {
+        background: #f9fafb;
+    }
+
+    .badge {
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        display: inline-block;
+    }
+
+    .badge-success {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .badge-warning {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .badge-danger {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .badge-grey {
+        background: #e5e7eb;
+        color: #374151;
+    }
+
+    .badge-delay-grey { background: var(--grey); color: white; }
+    .badge-delay-yellow { background: var(--yellow); color: #000; }
+    .badge-delay-orange { background: var(--warning); color: white; }
+    .badge-delay-red { background: var(--danger); color: white; }
+
+    .process-select {
+        padding: 6px 8px;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .process-approved { background: var(--success); color: white; }
+    .process-onprocess { background: var(--warning); color: white; }
+    .process-notapproved { background: var(--danger); color: white; }
+
+    .card {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .grand-total {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        color: white;
+        padding: 16px 24px;
+        border-radius: var(--radius);
+        font-size: 18px;
+        font-weight: 700;
+        text-align: right;
+        margin-top: 16px;
+    }
+
+    .letter-preview {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 32px;
+        line-height: 1.8;
+        font-size: 14px;
+        white-space: pre-wrap;
+        font-family: 'Courier New', monospace;
+    }
+
+    .about-cell {
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 768px) {
+        .header h1 {
+            font-size: 22px;
+        }
+        .tab-content {
+            padding: 20px 16px;
+        }
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        .nav-tab {
+            padding: 12px 16px;
+            font-size: 13px;
+        }
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: var(--radius);
+        padding: 24px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 16px;
+        color: var(--primary);
+    }
+
+    .help-panel {
+        position: fixed; top:0; right:-420px; width:380px; height:100vh;
+        background:white; box-shadow:-4px 0 20px rgba(0,0,0,0.15);
+        transition:right 0.3s ease; z-index:2000; overflow-y:auto; padding:28px;
+    }
+    .help-panel.active { right:0; }
+    .help-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1999; }
+    .help-overlay.active { display:block; }
+    .help-panel h3 { color: var(--primary); margin-bottom:16px; font-size:18px; }
+    .help-panel h4 { margin:16px 0 8px; font-size:14px; color:#374151; }
+    .help-panel p, .help-panel li { font-size:13px; line-height:1.6; color:#4b5563; }
+    .help-panel ul { padding-left:18px; margin-bottom:12px; }
+    .utc-preview { font-size:11px; color:#1e40af; margin-top:4px; display:block; font-weight:600; }
+    .utc-preview.empty { color:#9ca3af; font-weight:400; }
+
+
+    /* === OPSI B: Topbar Compact === */
+    .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        box-shadow: var(--shadow);
+    }
+    .header-compact {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 20px;
+        color: white;
+        gap: 16px;
+    }
+    .header-compact .brand h1 {
+        font-size: 18px;
+        font-weight: 700;
+        margin: 0;
+        white-space: nowrap;
+    }
+    .header-compact .brand p {
+        display: none; /* sembunyikan subtitle biar ringkas */
+    }
+    .header-compact .nav-tabs {
+        display: flex;
+        background: transparent;
+        border-bottom: none;
+        overflow-x: auto;
+        flex: 1;
+        justify-content: center;
+        position: static; /* tidak sticky lagi, ikut topbar */
+        top: auto;
+        box-shadow: none;
+    }
+    .header-compact .nav-tab {
+        padding: 10px 16px;
+        color: rgba(255,255,255,0.85);
+        border-bottom: 3px solid transparent;
+        background: transparent;
+        font-size: 14px;
+    }
+    .header-compact .nav-tab:hover {
+        color: white;
+        background: rgba(255,255,255,0.1);
+    }
+    .header-compact .nav-tab.active {
+        color: white;
+        border-bottom-color: #FFC107;
+        background: rgba(255,255,255,0.15);
+    }
+    .header-compact #helpToggle {
+        position: static !important;
+        transform: none !important;
+        padding: 6px 12px;
+        font-size: 13px;
+        background: rgba(255,255,255,0.2) !important;
+        border: 1px solid rgba(255,255,255,0.4) !important;
+    }
+    /* Container harus visible agar sticky jalan */
+    .container { overflow: visible; }
+    /* Sesuaikan thead karena topbar sekarang lebih pendek (~48px) */
+    thead { top: 48px !important; }
+
+
+    /* === Mobile optimization === */
+    .header-compact .nav-tabs {
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .header-compact .nav-tabs::-webkit-scrollbar { display: none; }
+    
+    @media (max-width: 768px) {
+        .topbar { position: sticky; top: 0; }
+        .header-compact {
+            padding: 6px 10px;
+            gap: 8px;
+        }
+        .header-compact .brand h1 {
+            font-size: 14px;
+            max-width: 90px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .header-compact .nav-tabs {
+            flex: 1;
+            justify-content: flex-start;
+            gap: 4px;
+        }
+        .header-compact .nav-tab {
+            padding: 8px 12px;
+            font-size: 13px;
+            white-space: nowrap;
+            scroll-snap-align: start;
+        }
+        .header-compact #helpToggle {
+            padding: 5px 8px;
+            font-size: 12px;
+        }
+        /* thead turun sedikit karena topbar bisa 44px di mobile */
+        thead { top: 44px !important; }
+        .tab-content { padding: 16px; }
+    }
+    /* indikator aktif lebih jelas */
+    .header-compact .nav-tab.active {
+        border-bottom-width: 3px;
+        border-bottom-color: #FFC107;
+        font-weight: 700;
+        box-shadow: inset 0 -3px 0 #FFC107;
+    }
+
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="topbar">
+    <div class="header-compact">
+        <div class="brand">
+            <h1>Calculator Delay SJNAM</h1>
+        </div>
+        <div class="nav-tabs">
+        <button class="nav-tab active" data-tab="home">Home</button>
+        <button class="nav-tab" data-tab="request">Request Approval</button>
+        <button class="nav-tab" data-tab="data-approval">Data Approval</button>
+        <button class="nav-tab" data-tab="dashboard">Dashboard</button>
+        <button class="nav-tab" data-tab="parameter">Parameter</button>
+    </div>
+        <button id="helpToggle" class="btn" style="background:rgba(255,255,255,0.2); color:white; border:1px solid rgba(255,255,255,0.4); backdrop-filter:blur(4px);">❓ Bantuan</button>
+    </div>
+</div>
+<div class="help-overlay" id="helpOverlay"></div>
+<div class="help-panel" id="helpPanel">
+        <h3>📘 Panduan Cepat PM89</h3>
+        <h4>Alur Kerja</h4>
+        <ol style="padding-left:18px; font-size:13px; line-height:1.6;">
+            <li>Input data di tab <b>Home</b> (pakai waktu UTC)</li>
+            <li>Sistem otomatis hitung delay & konversi ke local</li>
+            <li>Klik <b>Save</b> → data masuk ke <b>Data Approval</b></li>
+            <li>Generate surat di tab <b>Request Approval</b></li>
+        </ol>
+        <h4>Auto-Convert UTC ↔ Local</h4>
+        <p>Saat kamu isi <b>Route</b> (contoh CGK-DPS), sistem ambil UTC offset dari tab Parameter. Di bawah setiap kolom UTC akan muncul preview waktu lokal otomatis.</p>
+        <ul>
+            <li>CGK = UTC+7, DPS = UTC+8, dll</li>
+            <li>Jika ETD lewat hari, otomatis (+1)</li>
+        </ul>
+    </div>
+
+    <!-- HOME TAB -->
+    <div id="home" class="tab-content active">
+        <div class="section-title">📋 Input Data</div>
+        <div class="card">
+            <form id="homeForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Date of Flight *</label>
+                        <input type="date" id="dateOfFlight" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Flight No *</label>
+                        <input type="text" id="flightNo" placeholder="IN123 / SJ456" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Route *</label>
+                        <input type="text" id="route" placeholder="CGK-UPG" required minlength="3" oninput="this.value=this.value.toUpperCase()">
+                    </div>
+                    <div class="form-group">
+                        <label>Schedule Time Departure UTC *</label>
+                        <input type="time" id="stdUtc" required>
+                        <small class="utc-preview empty" id="stdLocalPreview">Isi Route dulu untuk lihat waktu lokal</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Estimate Time Departure UTC *</label>
+                        <input type="time" id="etdUtc" required>
+                        <small class="utc-preview empty" id="etdLocalPreview">Isi Route dulu untuk lihat waktu lokal</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Time Publish OCL *</label>
+                        <input type="time" id="timeOcl" required>
+                        <small class="utc-preview empty" id="oclLocalPreview">Isi Route dulu untuk lihat waktu lokal</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Process *</label>
+                        <select id="process" required>
+                            <option value="On-Process">On-Process</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Not-Approved">Not-Approved</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity Passenger</label>
+                        <input type="number" id="qtyPax" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>About / Keterangan</label>
+                        <input type="text" id="about" placeholder="Weather / Technical">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">💾 Simpan Data</button>
+            </form>
+        </div>
+
+        <div class="section-title">📊 Form Data</div>
+        <div class="toolbar">
+            <div class="search-box">
+                <input type="text" id="searchHome" placeholder="🔍 Search Flight No, Route, Date...">
+            </div>
+            <button class="btn btn-danger" onclick="clearAllFormData()">🗑️ Clear All Data</button>
+        </div>
+        <div class="table-wrapper">
+            <table id="formDataTable">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Flight No</th>
+                        <th>From STD UTC</th>
+                        <th>To ETD UTC</th>
+                        <th>STO</th>
+                        <th>Route</th>
+                        <th>From STD Lt</th>
+                        <th>To ETD Lt</th>
+                        <th>Est Delay</th>
+                        <th>Delay Now</th>
+                        <th>About</th>
+                        <th>Time Publish OCL</th>
+                        <th>PFC</th>
+                        <th>Qty Pax</th>
+                        <th>Process</th>
+                        <th>Action</th>
+                        <th>Airlines</th>
+                    </tr>
+                </thead>
+                <tbody id="formDataBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- REQUEST APPROVAL TAB -->
+    <div id="request" class="tab-content">
+        <div class="section-title">📧 Request Approval</div>
+        <div class="card">
+            <div class="form-group" style="max-width: 300px; margin-bottom: 20px;">
+                <label>Select Data No</label>
+                <select id="requestSelect">
+                    <option value="">-- Pilih Data --</option>
+                </select>
+            </div>
+            <div class="toolbar">
+                <button class="btn btn-primary" onclick="copyLetter()">📋 Copy</button>
+                <button class="btn btn-success" onclick="printLetter()">🖨️ Print</button>
+            </div>
+            <div id="letterPreview" class="letter-preview">
+                Pilih data terlebih dahulu untuk generate surat permohonan...
+            </div>
+        </div>
+    </div>
+
+    <!-- DATA APPROVAL TAB -->
+    <div id="data-approval" class="tab-content">
+        <div class="section-title">✅ Data Approval PM89</div>
+        <div class="card">
+            <div class="filter-grid">
+                <input type="text" id="filterDate" placeholder="Filter Date">
+                <input type="text" id="filterFlight" placeholder="Filter Flight No">
+                <input type="text" id="filterRoute" placeholder="Filter Route">
+                <input type="text" id="filterStatus" placeholder="Filter Status">
+            </div>
+            <div class="toolbar">
+                <button class="btn btn-success" onclick="exportExcel()">📥 Export to Excel</button>
+                <button class="btn btn-primary" onclick="syncToGoogleSheet()">⬆️ Push ke Sheet</button>
+                <button class="btn btn-warning" onclick="pullFromGoogleSheet()">⬇️ Pull dari Sheet</button>
+            </div>
+            <div style="font-size: 12px; color: #6b7280; margin-top: 8px;">
+                💡 Pertama kali? <a href="#" onclick="showSheetGuide(); return false;" style="color: var(--primary);">Klik untuk panduan setup Google Sheets (2 menit)</a>
+            </div>
+        </div>
+        <div class="table-wrapper">
+            <table id="approvalTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Flight No</th>
+                        <th>Route</th>
+                        <th>STO</th>
+                        <th>Qty Pax</th>
+                        <th>Status</th>
+                        <th>About</th>
+                        <th>Airlines</th>
+                        <th>Est Cost PM89</th>
+                        <th>Remarks</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="approvalBody"></tbody>
+            </table>
+        </div>
+        <div class="grand-total" id="grandTotal">Grand Total Est Cost PM89: Rp 0</div>
+    </div>
+
+    <!-- DASHBOARD TAB -->
+    <div id="dashboard" class="tab-content">
+        <div class="section-title">📊 Dashboard Total Cost PM89</div>
+        <div class="card">
+            <div class="toolbar" style="margin-bottom:16px; flex-wrap:wrap">
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
+                    <label style="font-weight:600; font-size:13px">Filter:</label>
+                    <select id="stationFilter" onchange="renderDashboard()" style="padding:8px 12px; border:1px solid var(--border); border-radius:6px; min-width:140px">
+                        <option value="all">Semua Station</option>
+                    </select>
+                    <select id="dashboardYearFilter" onchange="renderDashboard()" style="padding:8px 12px; border:1px solid var(--border); border-radius:6px; min-width:120px">
+                        <option value="all">Semua Tahun</option>
+                    </select>
+                    <select id="dashboardMonthFilter" onchange="renderDashboard()" style="padding:8px 12px; border:1px solid var(--border); border-radius:6px; min-width:130px">
+                        <option value="all">Semua Bulan</option>
+                        <option value="1">Januari</option>
+                        <option value="2">Februari</option>
+                        <option value="3">Maret</option>
+                        <option value="4">April</option>
+                        <option value="5">Mei</option>
+                        <option value="6">Juni</option>
+                        <option value="7">Juli</option>
+                        <option value="8">Agustus</option>
+                        <option value="9">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Desember</option>
+                    </select>
+                    <button class="btn btn-sm btn-warning" onclick="resetDashboardFilters()" style="margin-left:8px">Reset</button>
+                </div>
+                <div id="filterInfo" style="font-size:12px; color:#6b7280; margin-left:auto"></div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                <div style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; padding: 20px; border-radius: 8px;">
+                    <div style="font-size: 14px; opacity: 0.9;">Minggu Ini</div>
+                    <div id="totalWeek" style="font-size: 24px; font-weight: 700; margin-top: 8px;">Rp 0</div>
+                    <div id="countWeek" style="font-size: 12px; opacity: 0.8; margin-top: 4px;">0 flight</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 20px; border-radius: 8px;">
+                    <div style="font-size: 14px; opacity: 0.9;">Bulan Ini</div>
+                    <div id="totalMonth" style="font-size: 24px; font-weight: 700; margin-top: 8px;">Rp 0</div>
+                    <div id="countMonth" style="font-size: 12px; opacity: 0.8; margin-top: 4px;">0 flight</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 20px; border-radius: 8px;">
+                    <div style="font-size: 14px; opacity: 0.9;">Tahun Ini</div>
+                    <div id="totalYear" style="font-size: 24px; font-weight: 700; margin-top: 8px;">Rp 0</div>
+                    <div id="countYear" style="font-size: 12px; opacity: 0.8; margin-top: 4px;">0 flight</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="toolbar" style="justify-content: space-between;">
+                <div class="section-title" style="font-size: 16px; margin: 0;">📈 Grafik & Rincian per Bulan</div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <select id="yearFilter" onchange="renderDashboard()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;">
+                        <option value="all">Semua Tahun</option>
+                    </select>
+                    <button class="btn btn-success" onclick="exportDashboardPDF()">📄 Export PDF</button>
+                </div>
+            </div>
+            <canvas id="monthlyChart" style="max-height: 300px; margin: 20px 0;"></canvas>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Bulan</th>
+                            <th>Jumlah Flight</th>
+                            <th>Total Pax</th>
+                            <th>Total Cost PM89</th>
+                        </tr>
+                    </thead>
+                    <tbody id="monthlyBreakdown"></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card" style="margin-top:20px">
+            <div class="toolbar" style="justify-content: space-between;">
+                <div class="section-title" style="font-size: 16px; margin: 0;">📝 Detail Data & Remarks (Editable)</div>
+                <button class="btn btn-success" onclick="exportDashboardExcel()">📥 Export Remarks to Excel</button>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Flight</th>
+                            <th>Route</th>
+                            <th>Qty</th>
+                            <th>Est Cost</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dashboardDetailBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- PARAMETER TAB -->
+    <div id="parameter" class="tab-content">
+        <div class="section-title">⚙️ Parameter STO & UTC</div>
+        <div class="card">
+            <div class="toolbar">
+                <button class="btn btn-primary" onclick="showAddStoModal()">➕ Add New STO</button>
+            </div>
+            <div class="table-wrapper">
+                <table id="parameterTable">
+                    <thead>
+                        <tr>
+                            <th>STO</th>
+                            <th>UTC Offset</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="parameterBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Add/Edit STO -->
+<div id="stoModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header" id="modalTitle">Add New STO</div>
+        <div class="form-group">
+            <label>STO Code *</label>
+            <input type="text" id="modalSto" maxlength="3" placeholder="CGK">
+        </div>
+        <div class="form-group">
+            <label>UTC Offset *</label>
+            <input type="text" id="modalUtc" placeholder="7:00">
+        </div>
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <button class="btn btn-primary" onclick="saveSto()">Save</button>
+            <button class="btn btn-danger" onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Storage Keys
+    const STORAGE_KEYS = {
+        FORM_DATA: 'calcDelay_formData',
+        APPROVAL_DATA: 'calcDelay_approvalData',
+        PARAMETERS: 'calcDelay_parameters'
+    };
+
+    // Default Parameters
+    const DEFAULT_PARAMETERS = [
+        { sto: 'YIA', utc: '7:00' }, { sto: 'UPG', utc: '8:00' }, { sto: 'CGK', utc: '7:00' },
+        { sto: 'BTH', utc: '7:00' }, { sto: 'TIM', utc: '9:00' }, { sto: 'BIK', utc: '9:00' },
+        { sto: 'DJJ', utc: '9:00' }, { sto: 'SOQ', utc: '9:00' }, { sto: 'BEJ', utc: '8:00' },
+        { sto: 'TMC', utc: '8:00' }, { sto: 'TJQ', utc: '7:00' }, { sto: 'PGK', utc: '7:00' },
+        { sto: 'DPS', utc: '8:00' }, { sto: 'KOE', utc: '8:00' }, { sto: 'NBX', utc: '9:00' },
+        { sto: 'SMQ', utc: '7:00' }, { sto: 'BPN', utc: '8:00' }, { sto: 'PKN', utc: '7:00' },
+        { sto: 'SRG', utc: '7:00' }, { sto: 'SUB', utc: '7:00' }, { sto: 'MOF', utc: '8:00' },
+        { sto: 'TTE', utc: '9:00' }, { sto: 'MDC', utc: '8:00' }, { sto: 'PNK', utc: '7:00' },
+        { sto: 'DJB', utc: '7:00' }, { sto: 'MOH', utc: '8:00' }, { sto: 'RAQ', utc: '8:00' },
+        { sto: 'PLW', utc: '8:00' }, { sto: 'KNO', utc: '7:00' }, { sto: 'LBJ', utc: '8:00' },
+        { sto: 'WMX', utc: '9:00' }
+    ];
+
+    // State
+    let formData = [];
+    let approvalData = [];
+    let parameters = [];
+    let editingStoIndex = -1;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        initTabs();
+        loadData();
+        renderAll();
+        setupListeners();
+        setInterval(updateDelayNow, 60000); // Update every minute
+        setInterval(autoDeleteOldData, 3600000); // Check every hour
+        autoDeleteOldData(); // Initial check
+    });
+
+    // Tab Management
+    function initTabs() {
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tabName).classList.add('active');
+            });
+        });
+    }
+
+    // Data Management
+    function loadData() {
+        formData = JSON.parse(localStorage.getItem(STORAGE_KEYS.FORM_DATA) || '[]');
+        approvalData = JSON.parse(localStorage.getItem(STORAGE_KEYS.APPROVAL_DATA) || '[]');
+        // Migrasi data lama: tambahkan remarks dan saved jika belum ada
+        approvalData = approvalData.map(item => ({
+            ...item,
+            remarks: item.remarks || '',
+            saved: item.saved !== undefined ? item.saved : true
+        }));
+        parameters = JSON.parse(localStorage.getItem(STORAGE_KEYS.PARAMETERS) || JSON.stringify(DEFAULT_PARAMETERS));
+    }
+
+    function renderAll() {
+        renderFormData();
+        renderApprovalData();
+        renderParameters();
+        renderDashboard();
+        updateRequestSelect();
+    }
+
+    function saveFormData() {
+        localStorage.setItem(STORAGE_KEYS.FORM_DATA, JSON.stringify(formData));
+        autoSyncToSheet();
+    }
+
+    function saveApprovalData() {
+        localStorage.setItem(STORAGE_KEYS.APPROVAL_DATA, JSON.stringify(approvalData));
+        autoSyncToSheet();
+    }
+
+    function saveParameters() {
+        localStorage.setItem(STORAGE_KEYS.PARAMETERS, JSON.stringify(parameters));
+        autoSyncToSheet();
+    }
+
+    // Auto-sync tanpa klik tombol (debounced 2 detik)
+    let autoSyncTimer = null;
+    function autoSyncToSheet() {
+        const webhook = localStorage.getItem('googleSheetWebhook');
+        if (!webhook) return; // belum setup, skip
+        
+        clearTimeout(autoSyncTimer);
+        autoSyncTimer = setTimeout(async () => {
+            try {
+                const payload = {
+                    action: 'push',
+                    formData: formData,
+                    approvalData: approvalData,
+                    parameters: parameters,
+                    timestamp: new Date().toISOString(),
+                    auto: true
+                };
+                await fetch(webhook, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                localStorage.setItem('lastSync', new Date().toLocaleString('id-ID'));
+                console.log('✅ Auto-sync ke Sheet berhasil', localStorage.getItem('lastSync'));
+                // tampilkan indikator kecil di console, tidak ganggu UI
+            } catch (e) {
+                console.warn('Auto-sync gagal:', e);
+            }
+        }, 2000); // tunggu 2 detik setelah perubahan terakhir
+    }
+
+    // Auto delete data after 7 days - DINONAKTIFKAN sesuai permintaan user
+    // Data sekarang tersimpan permanen sampai dihapus manual
+    function autoDeleteOldData() {
+        // const now = new Date();
+        // const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        // formData = formData.filter(item => {
+        //     const flightDate = new Date(item.dateOfFlight);
+        //     return flightDate >= sevenDaysAgo;
+        // });
+        // saveFormData();
+        console.log('Auto-delete dinonaktifkan - data tersimpan permanen');
+    }
+
+    // Utility Functions
+    // Auto-detect UTC untuk bandara Indonesia (tanpa buka Parameter)
+    const AUTO_UTC_MAP = {
+        // WIB UTC+7 - Sumatra, Jawa, Kalimantan Barat/Tengah
+        'CGK': '7:00', 'WIII': '7:00', 'WII': '7:00', 'HLP': '7:00', 'WIHH': '7:00',
+        'BDO': '7:00', 'WICC': '7:00', 'KNO': '7:00', 'WIMM': '7:00', 'PLM': '7:00', 'WIPP': '7:00',
+        'PDG': '7:00', 'WIEE': '7:00', 'PKU': '7:00', 'WIBB': '7:00', 'DJB': '7:00', 'WIPA': '7:00',
+        'BTH': '7:00', 'WIDD': '7:00', 'PGK': '7:00', 'WIPK': '7:00', 'TJQ': '7:00', 'WIKT': '7:00',
+        'PNK': '7:00', 'WIOO': '7:00', 'SUB': '7:00', 'WARR': '7:00', 'WAR': '7:00', 'SRG': '7:00', 'WARS': '7:00',
+        'SOC': '7:00', 'WAHQ': '7:00', 'YIA': '7:00', 'WAHI': '7:00', 'JOG': '7:00',
+        // WITA UTC+8 - Bali, Sulawesi, Nusa Tenggara, Kalimantan Timur/Selatan
+        'DPS': '8:00', 'WADD': '8:00', 'WAD': '8:00', 'LOP': '8:00', 'WADL': '8:00',
+        'UPG': '8:00', 'WAAA': '8:00', 'WAA': '8:00', 'MDC': '8:00', 'WAMM': '8:00',
+        'PLW': '8:00', 'WAML': '8:00', 'KDI': '8:00', 'WAWW': '8:00', 'BPN': '8:00', 'WALL': '8:00',
+        'TRK': '8:00', 'WALR': '8:00', 'BEJ': '8:00', 'WALK': '8:00', 'TMC': '8:00', 'WADT': '8:00',
+        'KOE': '8:00', 'WATT': '8:00', 'LBJ': '8:00', 'WATO': '8:00', 'MOF': '8:00', 'WATC': '8:00',
+        // WIT UTC+9 - Papua, Maluku
+        'DJJ': '9:00', 'WAJJ': '9:00', 'WAJ': '9:00', 'TIM': '9:00', 'WABP': '9:00',
+        'BIK': '9:00', 'WABB': '9:00', 'WAB': '9:00', 'SOQ': '9:00', 'WASS': '9:00',
+        'MKW': '9:00', 'WASR': '9:00', 'TTE': '9:00', 'WAEE': '9:00', 'AMQ': '9:00', 'WAPP': '9:00'
+    };
+
+    function getParameterUTC(sto) {
+        const code = sto.toUpperCase();
+        const param = parameters.find(p => p.sto === code);
+        if (param) return param.utc;
+        // Auto-detect dari map
+        if (AUTO_UTC_MAP[code]) return AUTO_UTC_MAP[code];
+        // Fallback berdasarkan wilayah ICAO
+        if (code.startsWith('WI')) return '7:00'; // Western Indonesia
+        if (code.startsWith('WA')) {
+            // Papua dan sebagian Maluku = +9
+            if (['WAJ','WAB','WAP','WAS','WAE'].some(p => code.startsWith(p))) return '9:00';
+            return '8:00'; // Sulawesi, Bali, NTT, NTB
+        }
+        if (code.startsWith('WB')) return '8:00'; // Kalimantan
+        return '7:00';
+    }
+
+    function parseUtcOffset(utcStr) {
+        const [h, m] = utcStr.split(':').map(Number);
+        return h + (m || 0) / 60;
+    }
+
+    function addUtcOffset(timeStr, utcOffset) {
+        if (!timeStr) return '';
+        const [h, m] = timeStr.split(':').map(Number);
+        let totalMinutes = h * 60 + m + parseUtcOffset(utcOffset) * 60;
+        totalMinutes = ((totalMinutes % 1440) + 1440) % 1440;
+        const newH = Math.floor(totalMinutes / 60);
+        const newM = totalMinutes % 60;
+        return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+    }
+
+    function calculateTimeDiff(time1, time2) {
+        if (!time1 || !time2) return { hours: 0, minutes: 0, totalMinutes: 0, display: '00:00', isNextDay: false };
+        const [h1, m1] = time1.split(':').map(Number);
+        const [h2, m2] = time2.split(':').map(Number);
+        let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+        let isNextDay = false;
+        if (diff < 0) {
+            diff += 1440;
+            isNextDay = true;
+        }
+        const hours = Math.floor(diff / 60);
+        const minutes = diff % 60;
+        return {
+            hours,
+            minutes,
+            totalMinutes: diff,
+            display: `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`,
+            isNextDay
+        };
+    }
+
+    function getDelayClass(minutes) {
+        if (minutes > 240) return 'badge-delay-red';
+        if (minutes > 180) return 'badge-delay-orange';
+        if (minutes > 120) return 'badge-delay-yellow';
+        if (minutes > 60) return 'badge-delay-grey';
+        return '';
+    }
+
+    function getProcessClass(process) {
+        if (process === 'Approved') return 'process-approved';
+        if (process === 'On-Process') return 'process-onprocess';
+        if (process === 'Not-Approved') return 'process-notapproved';
+        return '';
+    }
+
+    function formatDate(dateStr) {
+        const date = new Date(dateStr);
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${String(date.getDate()).padStart(2, '0')}-${months[date.getMonth()]}-${String(date.getFullYear()).slice(-2)}`;
+    }
+
+    function getAirlines(flightNo) {
+        const prefix = flightNo.substring(0, 2).toUpperCase();
+        if (prefix === 'IN') return 'NAM Air';
+        if (prefix === 'SJ') return 'Sriwijaya Air';
+        return '';
+    }
+
+    function getStatus(delayMinutes) {
+        if (delayMinutes === 0) return 'On Time';
+        if (delayMinutes > 0) return 'Delay Flight';
+        return 'Postpone Flight';
+    }
+
+    // Form Submission
+    document.getElementById('homeForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const data = {
+            id: Date.now(),
+            dateOfFlight: document.getElementById('dateOfFlight').value,
+            flightNo: document.getElementById('flightNo').value.toUpperCase(),
+            route: document.getElementById('route').value.toUpperCase(),
+            stdUtc: document.getElementById('stdUtc').value,
+            etdUtc: document.getElementById('etdUtc').value,
+            timeOcl: document.getElementById('timeOcl').value,
+            process: document.getElementById('process').value,
+            qtyPax: parseInt(document.getElementById('qtyPax').value) || 0,
+            about: document.getElementById('about').value,
+            timestamp: new Date().toISOString()
+        };
+        formData.push(data);
+        saveFormData();
+        renderFormData();
+        updateRequestSelect();
+        e.target.reset();
+        alert('Data berhasil disimpan!');
+    });
+
+    // Render Functions
+    function renderAll() {
+        renderFormData();
+        renderApprovalData();
+        renderParameters();
+        updateRequestSelect();
+    }
+
+    function renderFormData() {
+        const searchTerm = document.getElementById('searchHome').value.toLowerCase();
+        const tbody = document.getElementById('formDataBody');
+        tbody.innerHTML = '';
+
+        const filtered = formData.filter(item => 
+            item.flightNo.toLowerCase().includes(searchTerm) ||
+            item.route.toLowerCase().includes(searchTerm) ||
+            item.dateOfFlight.includes(searchTerm)
+        );
+
+        filtered.forEach((item, index) => {
+            const stoCode = item.route.substring(0, 3).toUpperCase();
+            const utcOffset = getParameterUTC(stoCode);
+            const stdLt = addUtcOffset(item.stdUtc, utcOffset);
+            const etdLt = addUtcOffset(item.etdUtc, utcOffset);
+            const estDelay = calculateTimeDiff(item.stdUtc, item.etdUtc);
+            const etdLtDisplay = etdLt + (estDelay.isNextDay ? ' (+1)' : '');
+            const delayNow = calculateDelayNow(stdLt, item.dateOfFlight);
+            const airlines = getAirlines(item.flightNo);
+            const status = item.status || getStatus(estDelay.totalMinutes);
+            const pfc = calculatePFC(item.timeOcl);
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${formatDate(item.dateOfFlight)}</td>
+                <td>
+                    <select class="process-select" onchange="updateStatus(${item.id}, this.value)" style="font-size:11px; padding:4px 6px; min-width:110px;">
+                        <option value="On Time" ${status === 'On Time' ? 'selected' : ''}>On Time</option>
+                        <option value="Delay Flight" ${status === 'Delay Flight' ? 'selected' : ''}>Delay Flight</option>
+                        <option value="Postpone Flight" ${status === 'Postpone Flight' ? 'selected' : ''}>Postpone Flight</option>
+                    </select>
+                </td>
+                <td><strong>${item.flightNo}</strong></td>
+                <td>${item.stdUtc}</td>
+                <td>${item.etdUtc}</td>
+                <td>${stoCode}</td>
+                <td>${item.route}</td>
+                <td>${stdLt}</td>
+                <td>${etdLtDisplay}</td>
+                <td><span class="badge ${getDelayClass(estDelay.totalMinutes)}">${estDelay.display}${estDelay.isNextDay ? ' (+1)' : ''}</span></td>
+                <td><span class="badge ${delayNow.expired ? '' : getDelayClass(delayNow.minutes)}" id="delayNow-${item.id}">${delayNow.display}</span></td>
+                <td class="about-cell" title="${item.about}">${item.about || '-'}</td>
+                <td>${item.timeOcl}</td>
+                <td>${pfc}</td>
+                <td><input type="number" min="0" value="${item.qtyPax}" onchange="updateQtyPax(${item.id}, this.value)" style="width:70px; padding:4px 6px; border:1px solid var(--border); border-radius:4px; font-size:12px;"></td>
+                <td>
+                    <select class="process-select ${getProcessClass(item.process)}" onchange="updateProcess(${item.id}, this.value)">
+                        <option value="Approved" ${item.process === 'Approved' ? 'selected' : ''}>Approved</option>
+                        <option value="On-Process" ${item.process === 'On-Process' ? 'selected' : ''}>On-Process</option>
+                        <option value="Not-Approved" ${item.process === 'Not-Approved' ? 'selected' : ''}>Not-Approved</option>
+                    </select>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-success" onclick="saveToApproval(${item.id})">Save</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteFormData(${item.id})">Del</button>
+                </td>
+                <td>${airlines}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function calculateDelayNow(stdLt, flightDate) {
+        const now = new Date();
+        // Hitung berdasarkan From STD Lt (waktu lokal), bukan UTC
+        const flightDateTime = new Date(flightDate + 'T' + stdLt + ':00');
+        const diffMs = now - flightDateTime;
+        if (diffMs < 0) return { minutes: 0, display: '00:00' };
+        // Jika sudah lewat dari 2 hari (48 jam), tidak perlu dihitung lagi
+        if (diffMs > 2 * 24 * 60 * 60 * 1000) {
+            return { minutes: 0, display: '-', expired: true };
+        }
+        const diffMinutes = Math.floor(diffMs / 60000);
+        const hours = Math.floor(diffMinutes / 60);
+        const minutes = diffMinutes % 60;
+        return {
+            minutes: diffMinutes,
+            display: `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+        };
+    }
+
+    function calculatePFC(timeOcl) {
+        if (!timeOcl) return '';
+        const now = new Date();
+        const [h, m] = timeOcl.split(':').map(Number);
+        const oclDate = new Date();
+        oclDate.setHours(h, m, 0, 0);
+        const diffMs = now - oclDate;
+        const diffHours = Math.floor(diffMs / 3600000);
+        return diffHours > 0 ? `${diffHours}h ago` : 'Recent';
+    }
+
+    function updateDelayNow() {
+        formData.forEach(item => {
+            const stoCode = item.route.substring(0, 3).toUpperCase();
+            const utcOffset = getParameterUTC(stoCode);
+            const stdLt = addUtcOffset(item.stdUtc, utcOffset);
+            const delayNow = calculateDelayNow(stdLt, item.dateOfFlight);
+            const el = document.getElementById(`delayNow-${item.id}`);
+            if (el) {
+                el.textContent = delayNow.display;
+                el.className = delayNow.expired ? 'badge' : `badge ${getDelayClass(delayNow.minutes)}`;
+            }
+        });
+    }
+
+    function updateProcess(id, value) {
+        const item = formData.find(d => d.id === id);
+        if (item) {
+            item.process = value;
+            saveFormData();
+            renderFormData();
+        }
+    }
+
+    function updateQtyPax(id, value) {
+        const item = formData.find(d => d.id === id);
+        if (item) {
+            item.qtyPax = parseInt(value) || 0;
+            saveFormData();
+            renderFormData();
+            updateRequestSelect();
+        }
+    }
+
+    function updateStatus(id, value) {
+        const item = formData.find(d => d.id === id);
+        if (item) {
+            item.status = value;
+            saveFormData();
+            renderFormData();
+        }
+    }
+
+    function deleteFormData(id) {
+        if (confirm('Hapus data ini?')) {
+            formData = formData.filter(d => d.id !== id);
+            saveFormData();
+            renderFormData();
+            updateRequestSelect();
+        }
+    }
+
+    function clearAllFormData() {
+        if (confirm('Hapus semua data Form Data? Data yang sudah di-save ke Approval tidak akan terhapus.')) {
+            formData = [];
+            saveFormData();
+            renderFormData();
+            updateRequestSelect();
+        }
+    }
+
+    function saveToApproval(id) {
+        const item = formData.find(d => d.id === id);
+        if (!item) return;
+        const stoCode = item.route.substring(0, 3).toUpperCase();
+        const utcOffset = getParameterUTC(stoCode);
+        const stdLt = addUtcOffset(item.stdUtc, utcOffset);
+        const etdLt = addUtcOffset(item.etdUtc, utcOffset);
+        const estDelay = calculateTimeDiff(item.stdUtc, item.etdUtc);
+            const etdLtDisplay = etdLt + (estDelay.isNextDay ? ' (+1)' : '');
+        
+        const approvalItem = {
+            id: Date.now(),
+            date: formatDate(item.dateOfFlight),
+            isoDate: item.dateOfFlight,
+            flightNo: item.flightNo,
+            route: item.route,
+            qtyPax: item.qtyPax,
+            status: item.status || getStatus(estDelay.totalMinutes),
+            about: item.about,
+            airlines: getAirlines(item.flightNo),
+            estCost: item.qtyPax * 300000,
+            originalId: item.id,
+            stdLt,
+            etdLt,
+            estDelay: estDelay.display,
+            remarks: '',
+            saved: true
+        };
+        
+        approvalData.push(approvalItem);
+        // Hapus dari Form Data agar tidak duplikat, tapi data tetap ada di Approval & Dashboard
+        formData = formData.filter(d => d.id !== id);
+        saveFormData();
+        saveApprovalData();
+        renderFormData();
+        renderApprovalData();
+        renderDashboard();
+        alert('Data berhasil di-save! Otomatis masuk ke Dashboard dan akan tersimpan permanen sampai dihapus manual.');
+    }
+
+    function renderApprovalData() {
+        const filterDate = document.getElementById('filterDate').value.toLowerCase();
+        const filterFlight = document.getElementById('filterFlight').value.toLowerCase();
+        const filterRoute = document.getElementById('filterRoute').value.toLowerCase();
+        const filterStatus = document.getElementById('filterStatus').value.toLowerCase();
+        
+        const tbody = document.getElementById('approvalBody');
+        tbody.innerHTML = '';
+
+        const filtered = approvalData.filter(item =>
+            item.date.toLowerCase().includes(filterDate) &&
+            item.flightNo.toLowerCase().includes(filterFlight) &&
+            item.route.toLowerCase().includes(filterRoute) &&
+            item.status.toLowerCase().includes(filterStatus)
+        );
+
+        let total = 0;
+        filtered.forEach(item => {
+            total += item.estCost;
+            const tr = document.createElement('tr');
+            const sto = item.route ? item.route.substring(0,3).toUpperCase() : '';
+            const isSaved = item.saved || false;
+            tr.innerHTML = `
+                <td>${item.date}</td>
+                <td><strong>${item.flightNo}</strong></td>
+                <td>${item.route}</td>
+                <td><span style="font-weight:600; color:var(--primary-dark)">${sto}</span></td>
+                <td><input type="number" min="0" value="${item.qtyPax}" onchange="updateApprovalQty(${item.id}, this.value)" style="width: 80px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px;"></td>
+                <td><span class="badge badge-${item.status === 'On Time' ? 'success' : 'warning'}">${item.status}</span></td>
+                <td class="about-cell" title="${item.about}" style="width: 200px;">${item.about || '-'}</td>
+                <td>${item.airlines}</td>
+                <td><span style="font-weight: 600; color: var(--primary);">Rp ${item.estCost.toLocaleString('id-ID')}</span></td>
+                <td><input type="text" value="${item.remarks || ''}" onchange="updateApprovalRemarks(${item.id}, this.value)" placeholder="Input remarks" style="width: 140px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px;"></td>
+                <td>
+                    ${!isSaved ? `<button class="btn btn-sm btn-success" onclick="saveToDashboard(${item.id})" style="margin-right:4px">Save</button>` : `<span class="badge badge-success" style="margin-right:4px">Saved</span>`}
+                    <button class="btn btn-sm btn-danger" onclick="deleteApproval(${item.id})">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('grandTotal').textContent = `Grand Total Est Cost PM89: Rp ${total.toLocaleString('id-ID')}`;
+    }
+
+    function updateEstCost(id, value) {
+        const item = approvalData.find(d => d.id === id);
+        if (item) {
+            item.estCost = parseInt(value) || 0;
+            saveApprovalData();
+            renderApprovalData();
+            renderDashboard();
+        }
+    }
+
+    function updateApprovalQty(id, value) {
+        const item = approvalData.find(d => d.id === id);
+        if (item) {
+            item.qtyPax = parseInt(value) || 0;
+            item.estCost = item.qtyPax * 300000; // otomatis = Qty Pax × 300.000
+            saveApprovalData();
+            renderApprovalData();
+            renderDashboard();
+        }
+    function updateApprovalRemarks(id, value) {
+        const item = approvalData.find(d => d.id === id);
+        if (item) {
+            item.remarks = value;
+            saveApprovalData();
+        }
+    }
+
+    function updateApprovalQty(id, value) {
+        const item = approvalData.find(d => d.id === id);
+        if (item) {
+            item.qtyPax = parseInt(value) || 0;
+            saveApprovalData();
+            renderDashboard();
+        }
+    }
+
+    function updateApprovalEstCost(id, value) {
+        const item = approvalData.find(d => d.id === id);
+        if (item) {
+            // remove non-digit
+            const num = parseInt(value.toString().replace(/[^0-9]/g, '')) || 0;
+            item.estCost = num;
+            saveApprovalData();
+            renderDashboard();
+        }
+    }
+
+    function saveToDashboard(id) {
+        const item = approvalData.find(d => d.id === id);
+        if (item) {
+            item.saved = true;
+            saveApprovalData();
+            renderApprovalData();
+            renderDashboard();
+            alert('Data berhasil di-save ke Dashboard!');
+        }
+    }
+
+    }
+
+    function deleteApproval(id) {
+        if (confirm('Hapus data dari Data Approval? Data tidak akan dapat dikembalikan.')) {
+            approvalData = approvalData.filter(d => d.id !== id);
+            saveApprovalData();
+            renderApprovalData();
+            renderDashboard();
+        }
+    }
+
+    function getFilteredApprovalData() {
+        const filterDate = document.getElementById('filterDate').value.toLowerCase();
+        const filterFlight = document.getElementById('filterFlight').value.toLowerCase();
+        const filterRoute = document.getElementById('filterRoute').value.toLowerCase();
+        const filterStatus = document.getElementById('filterStatus').value.toLowerCase();
+
+        return approvalData.filter(item => {
+            const matchDate = !filterDate || item.date.toLowerCase().includes(filterDate);
+            const matchFlight = !filterFlight || item.flightNo.toLowerCase().includes(filterFlight);
+            const matchRoute = !filterRoute || item.route.toLowerCase().includes(filterRoute);
+            const matchStatus = !filterStatus || item.status.toLowerCase().includes(filterStatus);
+            return matchDate && matchFlight && matchRoute && matchStatus;
+        });
+    }
+
+    function exportExcel() {
+        const filtered = getFilteredApprovalData();
+
+        // Siapkan data untuk Excel
+        const wsData = [
+            ['Date', 'Flight No', 'Route', 'STO', 'Qty Pax', 'Status', 'About', 'Airlines', 'Est Cost PM89', 'Remarks', 'STD Lt', 'ETD Lt', 'Est Delay']
+        ];
+        
+        filtered.forEach(item => {
+            const sto = item.route ? item.route.substring(0,3).toUpperCase() : '';
+            wsData.push([
+                item.date,
+                item.flightNo,
+                item.route,
+                sto,
+                item.qtyPax,
+                item.status,
+                item.about || '',
+                item.airlines,
+                item.estCost,
+                item.remarks || '',
+                item.stdLt || '',
+                item.etdLt || '',
+                item.estDelay || ''
+            ]);
+        });
+
+        // Tambah baris total
+        const total = filtered.reduce((sum, item) => sum + item.estCost, 0);
+        wsData.push([]);
+        wsData.push(['', '', '', '', '', '', 'GRAND TOTAL', total]);
+
+        // Buat workbook
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        
+        // Atur lebar kolom
+        ws['!cols'] = [
+            { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 8 },
+            { wch: 14 }, { wch: 25 }, { wch: 15 }, { wch: 15 },
+            { wch: 8 }, { wch: 8 }, { wch: 10 }
+        ];
+
+        XLSX.utils.book_append_sheet(wb, ws, 'Data Approval');
+        
+        // Export
+        const fileName = `Data_Approval_PM89_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+    }
+
+    function exportDashboardExcel() {
+        // Export khusus remarks dari data yang sudah saved (sesuai filter dashboard)
+        const stationFilter = document.getElementById('stationFilter');
+        const yearFilterDash = document.getElementById('dashboardYearFilter');
+        const monthFilter = document.getElementById('dashboardMonthFilter');
+        const selectedStation = stationFilter ? stationFilter.value : 'all';
+        const selectedYearDash = yearFilterDash ? yearFilterDash.value : 'all';
+        const selectedMonth = monthFilter ? monthFilter.value : 'all';
+
+        let filteredData = approvalData.filter(item => {
+            if (!item.saved) return false;
+            const itemDate = item.isoDate ? new Date(item.isoDate) : new Date();
+            const itemStation = item.route ? item.route.split('-')[0].toUpperCase() : '';
+            if (selectedStation !== 'all' && itemStation !== selectedStation) return false;
+            if (selectedYearDash !== 'all' && itemDate.getFullYear() != selectedYearDash) return false;
+            if (selectedMonth !== 'all' && (itemDate.getMonth()+1) != selectedMonth) return false;
+            return true;
+        });
+
+        const wsData = [
+            ['Date', 'Flight No', 'Route', 'STO', 'Qty Pax', 'Status', 'About', 'Airlines', 'Est Cost PM89', 'Remarks', 'Last Update']
+        ];
+        
+        filteredData.forEach(item => {
+            const sto = item.route ? item.route.substring(0,3).toUpperCase() : '';
+            wsData.push([
+                item.date,
+                item.flightNo,
+                item.route,
+                sto,
+                item.qtyPax,
+                item.status,
+                item.about || '',
+                item.airlines,
+                item.estCost,
+                item.remarks || '',
+                new Date().toLocaleString('id-ID')
+            ]);
+        });
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        ws['!cols'] = [{wch:12},{wch:12},{wch:10},{wch:6},{wch:8},{wch:12},{wch:20},{wch:12},{wch:15},{wch:30},{wch:18}];
+        XLSX.utils.book_append_sheet(wb, ws, 'Remarks');
+        const fileName = `Remarks_PM89_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+    }
+
+    async function syncToGoogleSheet() {
+        const sheetUrl = localStorage.getItem('googleSheetWebhook');
+        let webhook = sheetUrl;
+        
+        if (!webhook) {
+            webhook = prompt('Masukkan URL Web App Google Apps Script kamu:\n\n(Cara buat: lihat panduan di bawah tombol)');
+            if (!webhook) return;
+            localStorage.setItem('googleSheetWebhook', webhook);
+        }
+
+        // Kirim SEMUA data (bukan cuma filtered) untuk two-way sync
+        const payload = {
+            action: 'push',
+            formData: formData,
+            approvalData: approvalData,
+            parameters: parameters,
+            timestamp: new Date().toISOString()
+        };
+
+        try {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = '⏳ Pushing...';
+            
+            await fetch(webhook, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            btn.disabled = false;
+            btn.textContent = '⬆️ Push ke Sheet';
+            localStorage.setItem('lastSync', new Date().toLocaleString('id-ID'));
+            alert(`✅ Push berhasil! ${formData.length} Form + ${approvalData.length} Approval terkirim.\n\nLast sync: ${localStorage.getItem('lastSync')}`);
+        } catch (error) {
+            const btn = event.target;
+            btn.disabled = false;
+            btn.textContent = '⬆️ Push ke Sheet';
+            alert('❌ Gagal push. Cek URL dan deployment.\n\nError: ' + error.message);
+        }
+    }
+
+    async function pullFromGoogleSheet() {
+        const webhook = localStorage.getItem('googleSheetWebhook');
+        if (!webhook) {
+            alert('Belum ada URL Web App. Klik Push dulu atau masukkan URL.');
+            return;
+        }
+
+        try {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = '⏳ Pulling...';
+            
+            const response = await fetch(webhook + '?action=pull&t=' + Date.now());
+            const result = await response.json();
+            
+            if (result.formData) {
+                formData = result.formData;
+                saveFormData();
+            }
+            if (result.approvalData) {
+                approvalData = result.approvalData;
+                saveApprovalData();
+            }
+            if (result.parameters) {
+                parameters = result.parameters;
+                saveParameters();
+            }
+            
+            renderAll();
+            btn.disabled = false;
+            btn.textContent = '⬇️ Pull dari Sheet';
+            localStorage.setItem('lastSync', new Date().toLocaleString('id-ID'));
+            alert(`✅ Pull berhasil!\n${formData.length} Form, ${approvalData.length} Approval, ${parameters.length} Parameter.\n\nLast sync: ${localStorage.getItem('lastSync')}`);
+        } catch (error) {
+            const btn = event.target;
+            btn.disabled = false;
+            btn.textContent = '⬇️ Pull dari Sheet';
+            alert('❌ Gagal pull. Pastikan Web App sudah deploy dengan akses Anyone dan doGet aktif.\n\nError: ' + error.message);
+        }
+    }
+
+    function showSheetGuide() {
+        const guide = `PANDUAN TWO-WAY SYNC GOOGLE SHEETS (3 MENIT):
+
+1. Buat Google Sheet baru → beri nama "Calculator Delay SJNAM"
+2. Buka Extensions → Apps Script → hapus kode default, paste ini:
+
+const SHEET_NAME = 'Data';
+function getSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) sheet = ss.insertSheet(SHEET_NAME);
+  return sheet;
+}
+
+function doGet(e) {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return ContentService.createTextOutput(JSON.stringify({formData:[],approvalData:[],parameters:[]})).setMimeType(ContentService.MimeType.JSON);
+  
+  const json = JSON.parse(data[1][0] || '{}');
+  return ContentService.createTextOutput(JSON.stringify(json)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  const sheet = getSheet();
+  const payload = JSON.parse(e.postData.contents);
+  
+  // Simpan semua data sebagai JSON di cell A2 (simple two-way)
+  sheet.clear();
+  sheet.getRange(1,1).setValue('LAST_SYNC');
+  sheet.getRange(1,2).setValue(new Date());
+  sheet.getRange(2,1).setValue(JSON.stringify(payload));
+  
+  return ContentService.createTextOutput('OK');
+}
+
+3. Deploy → New deployment → Web app
+   - Execute as: Me
+   - Who has access: Anyone
+4. Copy URL → paste di aplikasi saat klik Push/Pull
+
+CARA PAKAI:
+- ⬆️ Push: kirim data dari aplikasi ke Sheet
+- ⬇️ Pull: ambil data terbaru dari Sheet (tim lain bisa edit di Sheet, lalu kamu Pull)
+- Bisa auto-sync tiap 5 menit: tambahkan setInterval(pullFromGoogleSheet, 300000);
+
+Selesai!`;
+        
+        alert(guide);
+    }
+
+    function renderDashboard() {
+        const now = new Date();
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay() + 1);
+        startOfWeek.setHours(0,0,0,0);
+        
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+        // Get filters
+        const stationFilter = document.getElementById('stationFilter');
+        const yearFilterDash = document.getElementById('dashboardYearFilter');
+        const monthFilter = document.getElementById('dashboardMonthFilter');
+        const selectedStation = stationFilter ? stationFilter.value : 'all';
+        const selectedYearDash = yearFilterDash ? yearFilterDash.value : 'all';
+        const selectedMonth = monthFilter ? monthFilter.value : 'all';
+
+        // Filter data based on selections
+        let filteredData = approvalData.filter(item => {
+            if (!item.saved) return false;
+            const itemDate = item.isoDate ? new Date(item.isoDate) : new Date();
+            const itemStation = item.route ? item.route.split('-')[0].toUpperCase() : '';
+            
+            if (selectedStation !== 'all' && itemStation !== selectedStation) return false;
+            if (selectedYearDash !== 'all' && itemDate.getFullYear() != selectedYearDash) return false;
+            if (selectedMonth !== 'all' && (itemDate.getMonth()+1) != selectedMonth) return false;
+            return true;
+        });
+
+        let weekTotal = 0, weekCount = 0, weekPax = 0;
+        let monthTotal = 0, monthCount = 0, monthPax = 0;
+        let yearTotal = 0, yearCount = 0, yearPax = 0;
+
+        const monthlyData = {};
+        const years = new Set();
+        const stations = new Set();
+
+        approvalData.filter(i=>i.saved).forEach(item => {
+            const itemDate = item.isoDate ? new Date(item.isoDate) : new Date();
+            years.add(itemDate.getFullYear());
+            const st = item.route ? item.route.split('-')[0].toUpperCase() : '';
+            if(st) stations.add(st);
+        });
+
+        // Populate station filter
+        if(stationFilter){
+            const currentSt = stationFilter.value;
+            stationFilter.innerHTML = '<option value="all">Semua Station</option>';
+            Array.from(stations).sort().forEach(s => {
+                stationFilter.innerHTML += `<option value="${s}">${s}</option>`;
+            });
+            stationFilter.value = stations.has(currentSt) ? currentSt : 'all';
+        }
+        // Populate year filter dashboard
+        if(yearFilterDash){
+            const currentY = yearFilterDash.value;
+            yearFilterDash.innerHTML = '<option value="all">Semua Tahun</option>';
+            Array.from(years).sort((a,b)=>b-a).forEach(y => {
+                yearFilterDash.innerHTML += `<option value="${y}">${y}</option>`;
+            });
+            yearFilterDash.value = years.has(parseInt(currentY)) ? currentY : 'all';
+        }
+
+        filteredData.forEach(item => {
+            const itemDate = item.isoDate ? new Date(item.isoDate) : new Date();
+            
+            if (itemDate >= startOfWeek) {
+                weekTotal += item.estCost;
+                weekCount++;
+                weekPax += item.qtyPax;
+            }
+            if (itemDate >= startOfMonth) {
+                monthTotal += item.estCost;
+                monthCount++;
+                monthPax += item.qtyPax;
+            }
+            if (itemDate >= startOfYear) {
+                yearTotal += item.estCost;
+                yearCount++;
+                yearPax += item.qtyPax;
+            }
+
+            const monthKey = `${itemDate.getFullYear()}-${String(itemDate.getMonth()+1).padStart(2,'0')}`;
+            if (!monthlyData[monthKey]) {
+                monthlyData[monthKey] = { count: 0, pax: 0, total: 0, name: itemDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }), year: itemDate.getFullYear() };
+            }
+            monthlyData[monthKey].count++;
+            monthlyData[monthKey].pax += item.qtyPax;
+            monthlyData[monthKey].total += item.estCost;
+        });
+
+        // Update original yearFilter for chart (keep compatibility)
+        const yearFilter = document.getElementById('yearFilter');
+        if(yearFilter){
+            const currentFilter = yearFilter.value;
+            yearFilter.innerHTML = '<option value="all">Semua Tahun</option>';
+            Array.from(years).sort((a,b) => b-a).forEach(y => {
+                yearFilter.innerHTML += `<option value="${y}">${y}</option>`;
+            });
+            yearFilter.value = currentFilter && years.has(parseInt(currentFilter)) ? currentFilter : 'all';
+        }
+
+        document.getElementById('totalWeek').textContent = `Rp ${weekTotal.toLocaleString('id-ID')}`;
+        document.getElementById('countWeek').textContent = `${weekCount} flight • ${weekPax} pax`;
+        document.getElementById('totalMonth').textContent = `Rp ${monthTotal.toLocaleString('id-ID')}`;
+        document.getElementById('countMonth').textContent = `${monthCount} flight • ${monthPax} pax`;
+        document.getElementById('totalYear').textContent = `Rp ${yearTotal.toLocaleString('id-ID')}`;
+        document.getElementById('countYear').textContent = `${yearCount} flight • ${yearPax} pax`;
+
+        // Update filter info
+        const info = document.getElementById('filterInfo');
+        if(info){
+            const parts = [];
+            if(selectedStation!=='all') parts.push(`Station: ${selectedStation}`);
+            if(selectedYearDash!=='all') parts.push(`Tahun: ${selectedYearDash}`);
+            if(selectedMonth!=='all') parts.push(`Bulan: ${['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][selectedMonth]}`);
+            info.textContent = parts.length ? `Filter aktif • ${parts.join(' • ')} • ${filteredData.length} data` : `${filteredData.length} total data`;
+        }
+
+        const tbody = document.getElementById('monthlyBreakdown');
+        tbody.innerHTML = '';
+        
+        const selectedYear = yearFilter ? yearFilter.value : 'all';
+        let filteredKeys = Object.keys(monthlyData).sort().reverse();
+        if (selectedYear !== 'all') {
+            filteredKeys = filteredKeys.filter(k => monthlyData[k].year == selectedYear);
+        }
+        filteredKeys = filteredKeys.slice(0, 12);
+
+        const chartLabels = [];
+        const chartData = [];
+
+        filteredKeys.reverse().forEach(key => {
+            const data = monthlyData[key];
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${data.name}</strong></td>
+                <td>${data.count}</td>
+                <td>${data.pax}</td>
+                <td>Rp ${data.total.toLocaleString('id-ID')}</td>
+            `;
+            tbody.appendChild(tr);
+            chartLabels.push(data.name.split(' ')[0]);
+            chartData.push(data.total / 1000000);
+        });
+
+        const ctx = document.getElementById('monthlyChart');
+        if (window.monthlyChartInstance) {
+            window.monthlyChartInstance.destroy();
+        }
+        window.monthlyChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Total Cost PM89 (Juta Rp)',
+                    data: chartData,
+                    backgroundColor: 'rgba(30, 64, 175, 0.8)',
+                    borderColor: 'rgba(30, 64, 175, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Rp ' + (context.parsed.y * 1000000).toLocaleString('id-ID');
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Juta Rupiah' } }
+                }
+            }
+        });
+
+        // Render detail table with editable remarks
+        const detailBody = document.getElementById('dashboardDetailBody');
+        if (detailBody) {
+            detailBody.innerHTML = '';
+            filteredData.sort((a,b) => new Date(b.isoDate) - new Date(a.isoDate)).forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.date}</td>
+                    <td><strong>${item.flightNo}</strong></td>
+                    <td>${item.route}</td>
+                    <td><input type="number" value="${item.qtyPax}" oninput="updateApprovalQty(${item.id}, this.value)" style="width: 80px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; text-align: center;"></td>
+                    <td><input type="text" value="${item.estCost}" oninput="updateApprovalEstCost(${item.id}, this.value)" style="width: 120px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px;" placeholder="0"></td>
+                    <td><input type="text" value="${item.remarks || ''}" oninput="updateApprovalRemarks(${item.id}, this.value)" placeholder="Edit remarks" style="width: 100%; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px;"></td>
+                `;
+                detailBody.appendChild(tr);
+            });
+        }
+    }
+
+function resetDashboardFilters(){
+    document.getElementById('stationFilter').value = 'all';
+    document.getElementById('dashboardYearFilter').value = 'all';
+    document.getElementById('dashboardMonthFilter').value = 'all';
+    renderDashboard();
+}
+
+
+    function exportDashboardPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        doc.setFontSize(16);
+        doc.text('Dashboard Total Cost PM89', 14, 20);
+        doc.setFontSize(10);
+        doc.text(`Tanggal Export: ${new Date().toLocaleDateString('id-ID')}`, 14, 28);
+        
+        // Summary
+        doc.setFontSize(12);
+        doc.text('Ringkasan:', 14, 40);
+        doc.setFontSize(10);
+        doc.text(document.getElementById('totalWeek').textContent + ' (Minggu Ini)', 14, 48);
+        doc.text(document.getElementById('totalMonth').textContent + ' (Bulan Ini)', 14, 54);
+        doc.text(document.getElementById('totalYear').textContent + ' (Tahun Ini)', 14, 60);
+        
+        // Table
+        let y = 75;
+        doc.setFontSize(12);
+        doc.text('Rincian per Bulan:', 14, y);
+        y += 8;
+        doc.setFontSize(9);
+        doc.text('Bulan', 14, y);
+        doc.text('Flight', 70, y);
+        doc.text('Pax', 100, y);
+        doc.text('Total Cost', 130, y);
+        y += 6;
+        
+        document.querySelectorAll('#monthlyBreakdown tr').forEach(tr => {
+            const tds = tr.querySelectorAll('td');
+            if (y > 270) { doc.addPage(); y = 20; }
+            doc.text(tds[0].textContent, 14, y);
+            doc.text(tds[1].textContent, 70, y);
+            doc.text(tds[2].textContent, 100, y);
+            doc.text(tds[3].textContent, 130, y);
+            y += 6;
+        });
+        
+        doc.save(`Dashboard_PM89_${new Date().toISOString().split('T')[0]}.pdf`);
+    }
+
+    function updateRequestSelect() {
+        const select = document.getElementById('requestSelect');
+        select.innerHTML = '<option value="">-- Pilih Data --</option>';
+        formData.forEach((item, index) => {
+            const option = document.createElement('option');
+            option.value = item.id;
+            option.textContent = `${index + 1}. ${item.flightNo} - ${item.route} - ${formatDate(item.dateOfFlight)}`;
+            select.appendChild(option);
+        });
+    }
+
+    document.getElementById('requestSelect').addEventListener('change', generateLetter);
+
+    function generateLetter() {
+        const id = parseInt(document.getElementById('requestSelect').value);
+        const item = formData.find(d => d.id === id);
+        const preview = document.getElementById('letterPreview');
+        
+        if (!item) {
+            preview.textContent = 'Pilih data terlebih dahulu untuk generate surat permohonan...';
+            return;
+        }
+
+        const stoCode = item.route.substring(0, 3).toUpperCase();
+        const utcOffset = getParameterUTC(stoCode);
+        const stdLt = addUtcOffset(item.stdUtc, utcOffset);
+        const etdLt = addUtcOffset(item.etdUtc, utcOffset);
+        const estDelay = calculateTimeDiff(item.stdUtc, item.etdUtc);
+            const etdLtDisplay = etdLt + (estDelay.isNextDay ? ' (+1)' : '');
+
+        const letter = `Kepada Yth,
+Bapak Achmad Yani
+JKTCN
+
+Dengan Hormat,
+Berikut Kami Kirimkan Permohonan Approval PM89 CIU Insurance Untuk Rute Sebagai Berikut :
+
+Tanggal : ${formatDate(item.dateOfFlight)}
+Flight No : ${item.flightNo}
+Route : ${item.route}
+ETD : ${stdLt}
+STD : ${etdLt}
+Delay : ${estDelay.display}
+Jumlah Pax : ${item.qtyPax}
+RL/OCL/Delay Notice : ${item.about || '-'}
+Keterangan : ${item.about || '-'}
+
+Demikian disampaikan, atas perhatian dan kerjasamanya diucapkan terima kasih.
+
+Salam,
+Errens Nussy
+CS Ground`;
+        
+        preview.textContent = letter;
+    }
+
+    function copyLetter() {
+        const text = document.getElementById('letterPreview').textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Surat berhasil di-copy!');
+        });
+    }
+
+    function printLetter() {
+        const text = document.getElementById('letterPreview').textContent;
+        const win = window.open('', '_blank');
+        win.document.write(`<pre style="font-family: 'Courier New', monospace; padding: 40px; line-height: 1.8;">${text}</pre>`);
+        win.document.close();
+        win.print();
+    }
+
+    function renderParameters() {
+        const tbody = document.getElementById('parameterBody');
+        tbody.innerHTML = '';
+        parameters.sort((a, b) => a.sto.localeCompare(b.sto)).forEach((param, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${param.sto}</strong></td>
+                <td>${param.utc}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="editSto(${index})">Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteSto(${index})">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function showAddStoModal() {
+        editingStoIndex = -1;
+        document.getElementById('modalTitle').textContent = 'Add New STO';
+        document.getElementById('modalSto').value = '';
+        document.getElementById('modalUtc').value = '';
+        document.getElementById('stoModal').classList.add('active');
+    }
+
+    function editSto(index) {
+        editingStoIndex = index;
+        document.getElementById('modalTitle').textContent = 'Edit STO';
+        document.getElementById('modalSto').value = parameters[index].sto;
+        document.getElementById('modalUtc').value = parameters[index].utc;
+        document.getElementById('stoModal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('stoModal').classList.remove('active');
+    }
+
+    function saveSto() {
+        const sto = document.getElementById('modalSto').value.toUpperCase().trim();
+        const utc = document.getElementById('modalUtc').value.trim();
+        
+        if (!sto || !utc) {
+            alert('STO dan UTC harus diisi!');
+            return;
+        }
+
+        if (editingStoIndex >= 0) {
+            parameters[editingStoIndex] = { sto, utc };
+        } else {
+            if (parameters.find(p => p.sto === sto)) {
+                alert('STO sudah ada!');
+                return;
+            }
+            parameters.push({ sto, utc });
+        }
+
+        saveParameters();
+        renderParameters();
+        renderFormData();
+        closeModal();
+    }
+
+    function deleteSto(index) {
+        if (confirm(`Hapus STO ${parameters[index].sto}?`)) {
+            parameters.splice(index, 1);
+            saveParameters();
+            renderParameters();
+            renderFormData();
+        }
+    }
+
+
+    // Help Panel
+    function openHelp() {
+        document.getElementById('helpPanel').classList.add('active');
+        document.getElementById('helpOverlay').classList.add('active');
+    }
+    function closeHelp() {
+        document.getElementById('helpPanel').classList.remove('active');
+        document.getElementById('helpOverlay').classList.remove('active');
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        const helpBtn = document.getElementById('helpToggle');
+        if (helpBtn) helpBtn.addEventListener('click', openHelp);
+        const overlay = document.getElementById('helpOverlay');
+        if (overlay) overlay.addEventListener('click', closeHelp);
+    });
+
+    // Auto-convert UTC to Local
+    function updateUtcPreviews() {
+        const route = document.getElementById('route').value.toUpperCase();
+        const stoCode = route.substring(0, 3).toUpperCase();
+        const stdUtc = document.getElementById('stdUtc').value;
+        const etdUtc = document.getElementById('etdUtc').value;
+        const oclUtc = document.getElementById('timeOcl').value;
+        
+        if (!stoCode || stoCode.length < 3) {
+            document.getElementById('stdLocalPreview').textContent = 'Isi Route dulu untuk lihat waktu lokal';
+            document.getElementById('stdLocalPreview').className = 'utc-preview empty';
+            document.getElementById('etdLocalPreview').textContent = 'Isi Route dulu untuk lihat waktu lokal';
+            document.getElementById('etdLocalPreview').className = 'utc-preview empty';
+            document.getElementById('oclLocalPreview').textContent = 'Isi Route dulu untuk lihat waktu lokal';
+            document.getElementById('oclLocalPreview').className = 'utc-preview empty';
+            return;
+        }
+        
+        const utcOffset = getParameterUTC(stoCode);
+        const offsetLabel = utcOffset.startsWith('+') || utcOffset.startsWith('-') ? 'UTC' + utcOffset : 'UTC+' + utcOffset;
+        
+        const stdLocal = stdUtc ? addUtcOffset(stdUtc, utcOffset) : '';
+        const etdLocal = etdUtc ? addUtcOffset(etdUtc, utcOffset) : '';
+        const oclLocal = oclUtc ? addUtcOffset(oclUtc, utcOffset) : '';
+        
+        // Cek apakah lewat hari
+        const diff = calculateTimeDiff(stdUtc, etdUtc);
+        
+        const stdEl = document.getElementById('stdLocalPreview');
+        const etdEl = document.getElementById('etdLocalPreview');
+        const oclEl = document.getElementById('oclLocalPreview');
+        
+        if (stdLocal) {
+            stdEl.textContent = `→ ${stdLocal} ${offsetLabel} (${stoCode})`;
+            stdEl.className = 'utc-preview';
+        } else {
+            stdEl.textContent = 'Masukkan STD UTC';
+            stdEl.className = 'utc-preview empty';
+        }
+        
+        if (etdLocal) {
+            const plusOne = diff.isNextDay ? ' (+1)' : '';
+            etdEl.textContent = `→ ${etdLocal}${plusOne} ${offsetLabel} (${stoCode})`;
+            etdEl.className = 'utc-preview';
+        } else {
+            etdEl.textContent = 'Masukkan ETD UTC';
+            etdEl.className = 'utc-preview empty';
+        }
+        
+        if (oclLocal) {
+            oclEl.textContent = `→ ${oclLocal} ${offsetLabel} (${stoCode})`;
+            oclEl.className = 'utc-preview';
+        } else {
+            oclEl.textContent = 'Masukkan Time OCL';
+            oclEl.className = 'utc-preview empty';
+        }
+    }
+
+    function setupListeners() {
+        document.getElementById('searchHome').addEventListener('input', renderFormData);
+        document.getElementById('filterDate').addEventListener('input', renderApprovalData);
+        document.getElementById('filterFlight').addEventListener('input', renderApprovalData);
+        document.getElementById('filterRoute').addEventListener('input', renderApprovalData);
+        document.getElementById('filterStatus').addEventListener('input', renderApprovalData);
+        
+        // Auto-convert listeners
+        ['route','stdUtc','etdUtc','timeOcl'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', updateUtcPreviews);
+                el.addEventListener('change', updateUtcPreviews);
+            }
+        });
+        // Initial call
+        updateUtcPreviews();
+    }
+
+    // Close modal on outside click
+    document.getElementById('stoModal').addEventListener('click', (e) => {
+        if (e.target.id === 'stoModal') closeModal();
+    });
+</script>
+
+<script>
+// --- OFFLINE PWA + AUTO SYNC ---
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      console.log('SW registered');
+    });
+  });
+}
+
+// Queue system
+const SYNC_QUEUE_KEY = 'syncQueue';
+function getQueue(){ return JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY)||'[]'); }
+function setQueue(q){ localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(q)); }
+
+function queueSync(payload){
+  const q = getQueue();
+  q.push({...payload, queuedAt: new Date().toISOString()});
+  setQueue(q);
+  updateOnlineStatus();
+}
+
+async function processQueue(){
+  if(!navigator.onLine) return;
+  const webhook = localStorage.getItem('googleSheetWebhook');
+  if(!webhook) return;
+  let q = getQueue();
+  if(q.length===0) return;
+  
+  const btn = document.getElementById('syncStatus');
+  if(btn) btn.textContent = `⏳ Syncing ${q.length}...`;
+  
+  while(q.length>0){
+    const item = q[0];
+    try {
+      await fetch(webhook, {method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(item)});
+      q.shift();
+      setQueue(q);
+      // Optional: push to GitHub
+      await pushToGitHub(item);
+    } catch(e){ console.error('Sync fail', e); break; }
+  }
+  if(btn) btn.textContent = q.length? `⚠️ ${q.length} pending` : '✅ Online & synced';
+  localStorage.setItem('lastSync', new Date().toLocaleString('id-ID'));
+}
+
+async function pushToGitHub(payload){
+  const token = localStorage.getItem('githubToken');
+  const repo = localStorage.getItem('githubRepo'); // format owner/repo
+  if(!token || !repo) return;
+  try {
+    const path = `data/backup-${new Date().toISOString().split('T')[0]}.json`;
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+    await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+      method:'PUT',
+      headers:{'Authorization':`token ${token}`, 'Content-Type':'application/json'},
+      body: JSON.stringify({message:`Auto sync ${new Date().toISOString()}`, content, branch:'main'})
+    });
+  } catch(e){ console.warn('GitHub sync skip', e); }
+}
+
+function updateOnlineStatus(){
+  const el = document.getElementById('onlineIndicator');
+  if(!el) return;
+  if(navigator.onLine){
+    el.textContent = '🟢 Online';
+    el.style.background = 'var(--success)';
+    processQueue();
+  } else {
+    const pending = getQueue().length;
+    el.textContent = `🔴 Offline (${pending} pending)`;
+    el.style.background = 'var(--danger)';
+  }
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+setInterval(processQueue, 30000); // every 30s
+document.addEventListener('DOMContentLoaded', updateOnlineStatus);
+
+// Patch existing syncToGoogleSheet
+const originalSync = window.syncToGoogleSheet;
+window.syncToGoogleSheet = async function(){
+  const payload = {
+    action:'push',
+    formData, approvalData, parameters,
+    timestamp: new Date().toISOString()
+  };
+  if(!navigator.onLine){
+    queueSync(payload);
+    alert('📴 Offline: data disimpan lokal, akan auto-sync saat online');
+    return;
+  }
+  queueSync(payload);
+  await processQueue();
+}
+</script>
+<div id="onlineIndicator" style="position:fixed;bottom:16px;right:16px;padding:8px 12px;border-radius:20px;color:white;font-size:12px;font-weight:600;z-index:9999;background:#4CAF50;box-shadow:0 2px 8px rgba(0,0,0,0.2)">🟢 Online</div>
+
+<!-- === SUPABASE INTEGRATION === -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+<script>
+// GANTI dengan project kamu dari supabase.com
+const SUPABASE_URL = 'https://siteybxbbmxeiynwoqet.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpdGV5YnhiYm14ZWl5bndvcWV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzE4NTAsImV4cCI6MjA5NTQ0Nzg1MH0.X6vThjLTMgd7Qik3LWAj8_bsHIIThHxSW9w9WxYsD5k';
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Fungsi baru untuk sync ke Supabase
+async function syncToSupabase(payload) {
+  try {
+    const { data, error } = await supabaseClient
+      .from('delay_sjnam')
+      .upsert([{
+        id: 1, // single row, atau pakai payload.timestamp
+        form_data: payload.formData,
+        approval_data: payload.approvalData,
+        parameters: payload.parameters,
+        updated_at: new Date().toISOString()
+      }], { onConflict: 'id' });
+    
+    if (error) throw error;
+    console.log('✅ Supabase sync berhasil');
+    localStorage.setItem('lastSupabaseSync', new Date().toLocaleString('id-ID'));
+    return true;
+  } catch (e) {
+    console.error('Supabase sync gagal:', e);
+    return false;
+  }
+}
+
+// Patch fungsi sync yang sudah ada
+const _originalProcessQueue = window.processQueue;
+window.processQueue = async function() {
+  if (!navigator.onLine) return;
+  
+  // 1. Jalankan sync Google Sheet lama (jika ada)
+  if (typeof _originalProcessQueue === 'function') {
+    await _originalProcessQueue();
+  }
+  
+  // 2. Sync ke Supabase
+  const payload = {
+    formData, approvalData, parameters,
+    timestamp: new Date().toISOString()
+  };
+  await syncToSupabase(payload);
+  
+  // Update indikator
+  const btn = document.getElementById('syncStatus');
+  if (btn) btn.textContent = '✅ Supabase synced';
+};
+
+// Load data dari Supabase saat start
+async function loadFromSupabase() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('delay_sjnam')
+      .select('*')
+      .eq('id', 1)
+      .single();
+    
+    if (data && !error) {
+      if (data.form_data) formData = data.form_data;
+      if (data.approval_data) approvalData = data.approval_data;
+      if (data.parameters) parameters = data.parameters;
+      console.log('📥 Data dimuat dari Supabase');
+      // refresh UI
+      if (typeof renderFormData === 'function') renderFormData();
+      if (typeof renderApprovalData === 'function') renderApprovalData();
+    }
+  } catch(e) { console.warn('Supabase load skip', e); }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(loadFromSupabase, 1000);
+});
+</script>
+<!-- === END SUPABASE === -->
+
+</body>
+</html>
