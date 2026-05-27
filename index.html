@@ -429,17 +429,93 @@
     .utc-preview { font-size:11px; color:#1e40af; margin-top:4px; display:block; font-weight:600; }
     .utc-preview.empty { color:#9ca3af; font-weight:400; }
 
+
+    /* === OPSI B: Topbar Compact === */
+    .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        box-shadow: var(--shadow);
+    }
+    .header-compact {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 20px;
+        color: white;
+        gap: 16px;
+    }
+    .header-compact .brand h1 {
+        font-size: 18px;
+        font-weight: 700;
+        margin: 0;
+        white-space: nowrap;
+    }
+    .header-compact .brand p {
+        display: none; /* sembunyikan subtitle biar ringkas */
+    }
+    .header-compact .nav-tabs {
+        display: flex;
+        background: transparent;
+        border-bottom: none;
+        overflow-x: auto;
+        flex: 1;
+        justify-content: center;
+        position: static; /* tidak sticky lagi, ikut topbar */
+        top: auto;
+        box-shadow: none;
+    }
+    .header-compact .nav-tab {
+        padding: 10px 16px;
+        color: rgba(255,255,255,0.85);
+        border-bottom: 3px solid transparent;
+        background: transparent;
+        font-size: 14px;
+    }
+    .header-compact .nav-tab:hover {
+        color: white;
+        background: rgba(255,255,255,0.1);
+    }
+    .header-compact .nav-tab.active {
+        color: white;
+        border-bottom-color: #FFC107;
+        background: rgba(255,255,255,0.15);
+    }
+    .header-compact #helpToggle {
+        position: static !important;
+        transform: none !important;
+        padding: 6px 12px;
+        font-size: 13px;
+        background: rgba(255,255,255,0.2) !important;
+        border: 1px solid rgba(255,255,255,0.4) !important;
+    }
+    /* Container harus visible agar sticky jalan */
+    .container { overflow: visible; }
+    /* Sesuaikan thead karena topbar sekarang lebih pendek (~48px) */
+    thead { top: 48px !important; }
+
 </style>
 </head>
 <body>
 <div class="container">
-    <div class="header" style="position:relative;">
-        <h1>Calculator Delay SJNAM</h1>
-        <p>PM89 CIU Insurance Calculator & Approval System</p>
-        <button id="helpToggle" class="btn" style="position:absolute; right:24px; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.2); color:white; border:1px solid rgba(255,255,255,0.4); backdrop-filter:blur(4px);">❓ Bantuan</button>
+    <div class="topbar">
+    <div class="header-compact">
+        <div class="brand">
+            <h1>Calculator Delay SJNAM</h1>
+        </div>
+        <div class="nav-tabs">
+        <button class="nav-tab active" data-tab="home">Home</button>
+        <button class="nav-tab" data-tab="request">Request Approval</button>
+        <button class="nav-tab" data-tab="data-approval">Data Approval</button>
+        <button class="nav-tab" data-tab="dashboard">Dashboard</button>
+        <button class="nav-tab" data-tab="parameter">Parameter</button>
     </div>
-    <div class="help-overlay" id="helpOverlay"></div>
-    <div class="help-panel" id="helpPanel">
+        <button id="helpToggle" class="btn" style="background:rgba(255,255,255,0.2); color:white; border:1px solid rgba(255,255,255,0.4); backdrop-filter:blur(4px);">❓ Bantuan</button>
+    </div>
+</div>
+<div class="help-overlay" id="helpOverlay"></div>
+<div class="help-panel" id="helpPanel">
         <h3>📘 Panduan Cepat PM89</h3>
         <h4>Alur Kerja</h4>
         <ol style="padding-left:18px; font-size:13px; line-height:1.6;">
@@ -451,27 +527,9 @@
         <h4>Auto-Convert UTC ↔ Local</h4>
         <p>Saat kamu isi <b>Route</b> (contoh CGK-DPS), sistem ambil UTC offset dari tab Parameter. Di bawah setiap kolom UTC akan muncul preview waktu lokal otomatis.</p>
         <ul>
-            <li>CGK = UTC+7, DPS = UTC+8, UPG = UTC+8</li>
-            <li>Ubah STO di Parameter jika ada bandara baru</li>
+            <li>CGK = UTC+7, DPS = UTC+8, dll</li>
+            <li>Jika ETD lewat hari, otomatis (+1)</li>
         </ul>
-        <h4>PM89 Threshold</h4>
-        <ul>
-            <li><span style="color:#9E9E9E;">■</span> 0-60 menit: belum eligible</li>
-            <li><span style="color:#FFC107;">■</span> 61-120 menit: warning</li>
-            <li><span style="color:#FF9800;">■</span> 121-180 menit: PM89 mulai</li>
-            <li><span style="color:#F44336;">■</span> >240 menit: prioritas tinggi</li>
-        </ul>
-        <h4>Tips</h4>
-        <p>• Selalu input dalam UTC untuk menghindari salah hari.<br>• Time Publish OCL wajib diisi untuk audit.<br>• Data otomatis terhapus setelah 7 hari.</p>
-        <button class="btn btn-primary" onclick="closeHelp()" style="width:100%; margin-top:16px;">Tutup</button>
-    </div>
-
-    <div class="nav-tabs">
-        <button class="nav-tab active" data-tab="home">Home</button>
-        <button class="nav-tab" data-tab="request">Request Approval</button>
-        <button class="nav-tab" data-tab="data-approval">Data Approval</button>
-        <button class="nav-tab" data-tab="dashboard">Dashboard</button>
-        <button class="nav-tab" data-tab="parameter">Parameter</button>
     </div>
 
     <!-- HOME TAB -->
@@ -1789,8 +1847,8 @@ Selesai!`;
                     <td>${item.date}</td>
                     <td><strong>${item.flightNo}</strong></td>
                     <td>${item.route}</td>
-                    <td><input type="number" value="${item.qtyPax}" onchange="updateApprovalQty(${item.id}, this.value)" style="width: 80px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; text-align: center;"></td>
-                    <td><input type="text" value="${item.estCost}" onchange="updateApprovalEstCost(${item.id}, this.value)" style="width: 120px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px;" placeholder="0"></td>
+                    <td><input type="number" value="${item.qtyPax}" oninput="updateApprovalQty(${item.id}, this.value)" style="width: 80px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; text-align: center;"></td>
+                    <td><input type="text" value="${item.estCost}" oninput="updateApprovalEstCost(${item.id}, this.value)" style="width: 120px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px;" placeholder="0"></td>
                     <td><input type="text" value="${item.remarks || ''}" oninput="updateApprovalRemarks(${item.id}, this.value)" placeholder="Edit remarks" style="width: 100%; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px;"></td>
                 `;
                 detailBody.appendChild(tr);
