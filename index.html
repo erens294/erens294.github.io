@@ -1202,7 +1202,7 @@
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${index + 1}</td>
+                <td style="position:sticky;left:0;background:#fff3cd;color:#000;font-weight:700;text-align:center;min-width:45px;max-width:45px;z-index:6;border-right:2px solid #1e40af;">${index + 1}</td>
                 <td>${formatDate(item.dateOfFlight)}</td>
                 <td>
                     <select class="process-select" onchange="updateStatus(${item.id}, this.value)" style="font-size:11px; padding:4px 6px; min-width:110px;">
@@ -1238,6 +1238,9 @@
                 <td>${airlines}</td>
             `;
             tbody.appendChild(tr);
+        });
+        // pastikan scroll ke atas biar baris 1 kelihatan
+        document.querySelector('.table-wrapper').scrollTop = 0;
         });
     }
 
@@ -1410,6 +1413,9 @@
                 </td>
             `;
             tbody.appendChild(tr);
+        });
+        // pastikan scroll ke atas biar baris 1 kelihatan
+        document.querySelector('.table-wrapper').scrollTop = 0;
         });
 
         document.getElementById('grandTotal').textContent = `Grand Total Est Cost PM89: Rp ${total.toLocaleString('id-ID')}`;
@@ -1874,6 +1880,9 @@ Selesai!`;
                 <td>Rp ${data.total.toLocaleString('id-ID')}</td>
             `;
             tbody.appendChild(tr);
+        });
+        // pastikan scroll ke atas biar baris 1 kelihatan
+        document.querySelector('.table-wrapper').scrollTop = 0;
             chartLabels.push(data.name.split(' ')[0]);
             chartData.push(data.total / 1000000);
         });
@@ -2066,6 +2075,9 @@ CS Ground`;
                 </td>
             `;
             tbody.appendChild(tr);
+        });
+        // pastikan scroll ke atas biar baris 1 kelihatan
+        document.querySelector('.table-wrapper').scrollTop = 0;
         });
     }
 
