@@ -251,8 +251,7 @@
 
     thead {
         background: var(--secondary);
-        position: sticky;
-        top: 0;
+        /* position: sticky dihapus biar tidak nutup baris 1 */
         z-index: 10;
     }
 
@@ -277,8 +276,8 @@
     /* FIX: kolom No selalu terlihat & header tidak nutup baris 1 */
     .table-wrapper {
         overflow-x: auto;
-        overflow-y: auto;
-        max-height: 65vh;
+        overflow-y: visible;
+        max-height: none;
         border: 1px solid var(--border);
         border-radius: var(--radius);
         margin-top: 20px;
