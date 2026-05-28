@@ -1163,8 +1163,9 @@
             about: document.getElementById('about').value,
             timestamp: new Date().toISOString()
         };
-        formData.push(data);
+        formData.unshift(data);
         saveFormData();
+        document.getElementById('searchHome').value = '';
         renderFormData();
         updateRequestSelect();
         e.target.reset();
@@ -1175,10 +1176,12 @@
     function renderAll() {
         // OPTIMASI: gunakan RAF untuk hindari blocking UI
         requestAnimationFrame(() => {
-        renderFormData();
-        renderApprovalData();
-        renderParameters();
-        updateRequestSelect();
+            renderFormData();
+            renderApprovalData();
+            renderParameters();
+            renderDashboard();
+            updateRequestSelect();
+        });
     }
 
     function renderFormData() {
@@ -1194,7 +1197,9 @@
         
         // OPTIMASI: batasi render max 100 baris untuk hindari lag
         const RENDER_LIMIT = 100;
-        const displayData = filtered.slice(0, RENDER_LIMIT);
+        const displayData = filtered
+            .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp))
+            .slice(0, RENDER_LIMIT);
         const fragment = document.createDocumentFragment();
 
         displayData.forEach((item, index) => {
@@ -1260,7 +1265,6 @@
         // pastikan scroll ke atas biar baris 1 kelihatan
         const wrapper = document.querySelector('.table-wrapper');
         if (wrapper) wrapper.scrollTop = 0;
-        });
     }
 
     function calculateDelayNow(stdLt, flightDate) {
@@ -2127,7 +2131,6 @@ CS Ground`;
         // pastikan scroll ke atas biar baris 1 kelihatan
         const wrapper = document.querySelector('.table-wrapper');
         if (wrapper) wrapper.scrollTop = 0;
-        });
     }
 
     function showAddStoModal() {
