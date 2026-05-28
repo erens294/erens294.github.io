@@ -967,17 +967,6 @@
         parameters = JSON.parse(localStorage.getItem(STORAGE_KEYS.PARAMETERS) || JSON.stringify(DEFAULT_PARAMETERS));
     }
 
-    function renderAll() {
-        // OPTIMASI: gunakan RAF untuk hindari blocking UI
-        requestAnimationFrame(() => {
-        renderFormData();
-            renderApprovalData();
-            renderParameters();
-            renderDashboard();
-            updateRequestSelect();
-        });
-    }
-
     function saveFormData() {
         localStorage.setItem(STORAGE_KEYS.FORM_DATA, JSON.stringify(formData));
         autoSyncToSheet();
@@ -1173,16 +1162,6 @@
     });
 
     // Render Functions
-    function renderAll() {
-        // OPTIMASI: gunakan RAF untuk hindari blocking UI
-        requestAnimationFrame(() => {
-            renderFormData();
-            renderApprovalData();
-            renderParameters();
-            renderDashboard();
-            updateRequestSelect();
-        });
-    }
 
     function renderFormData() {
         const searchTerm = document.getElementById('searchHome').value.toLowerCase();
@@ -1398,6 +1377,7 @@
     }
 
     function renderApprovalData() {
+    const RENDER_LIMIT = 200;
         const filterDate = document.getElementById('filterDate').value.toLowerCase();
         const filterFlight = document.getElementById('filterFlight').value.toLowerCase();
         const filterRoute = document.getElementById('filterRoute').value.toLowerCase();
@@ -1414,7 +1394,8 @@
         );
 
         let total = 0;
-        filtered.forEach(item => {
+        const fragment = document.createDocumentFragment();
+        filtered.slice(0, RENDER_LIMIT).forEach(item => {
             total += item.estCost;
             const tr = document.createElement('tr');
             const sto = item.route ? item.route.substring(0,3).toUpperCase() : '';
@@ -1449,7 +1430,6 @@
         // pastikan scroll ke atas biar baris 1 kelihatan
         const wrapper = document.querySelector('.table-wrapper');
         if (wrapper) wrapper.scrollTop = 0;
-        });
 
         document.getElementById('grandTotal').textContent = `Grand Total Est Cost PM89: Rp ${total.toLocaleString('id-ID')}`;
     }
@@ -1481,15 +1461,6 @@
         }
     }
 
-    function updateApprovalQty(id, value) {
-        const item = approvalData.find(d => d.id === id);
-        if (item) {
-            item.qtyPax = parseInt(value) || 0;
-            saveApprovalData();
-            renderDashboard();
-        }
-    }
-
     function updateApprovalEstCost(id, value) {
         const item = approvalData.find(d => d.id === id);
         if (item) {
@@ -1510,8 +1481,6 @@
             renderDashboard();
             alert('Data berhasil di-save ke Dashboard!');
         }
-    }
-
     }
 
     function deleteApproval(id) {
@@ -1892,6 +1861,9 @@ Selesai!`;
 
         const tbody = document.getElementById('monthlyBreakdown');
         tbody.innerHTML = '';
+        const fragment = document.createDocumentFragment();
+        const chartLabels = [];
+        const chartData = [];
         
         const selectedYear = yearFilter ? yearFilter.value : 'all';
         let filteredKeys = Object.keys(monthlyData).sort().reverse();
@@ -1913,22 +1885,10 @@ Selesai!`;
                 <td>Rp ${data.total.toLocaleString('id-ID')}</td>
             `;
             fragment.appendChild(tr);
-        });
-        tbody.appendChild(fragment);
-        
-        // tampilkan warning jika data lebih dari limit
-        if (filtered.length > RENDER_LIMIT) {
-            const warn = document.createElement('tr');
-            warn.innerHTML = `<td colspan="19" style="text-align:center;padding:12px;background:#fef3c7;color:#92400e;">⚠️ Menampilkan ${RENDER_LIMIT} dari ${filtered.length} data. Gunakan search untuk filter lebih spesifik.</td>`;
-            tbody.appendChild(warn);
-        }
-        
-        // pastikan scroll ke atas biar baris 1 kelihatan
-        const wrapper = document.querySelector('.table-wrapper');
-        if (wrapper) wrapper.scrollTop = 0;
             chartLabels.push(data.name.split(' ')[0]);
             chartData.push(data.total / 1000000);
         });
+        tbody.appendChild(fragment);
 
         const ctx = document.getElementById('monthlyChart');
         if (window.monthlyChartInstance) {
@@ -1981,7 +1941,6 @@ Selesai!`;
                 detailBody.appendChild(tr);
             });
         }
-    }
 
 function resetDashboardFilters(){
     document.getElementById('stationFilter').value = 'all';
@@ -2402,7 +2361,7 @@ window.syncToGoogleSheet = async function(){
 <script>
 // GANTI dengan project kamu dari supabase.com
 const SUPABASE_URL = 'https://siteybxbbmxeiynwoqet.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpdGV5YnhiYm14ZWl5bndvcWV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzE4NTAsImV4cCI6MjA5NTQ0Nzg1MH0.X6vThjLTMgd7Qik3LWAj8_bsHIIThHxSW9w9WxYsD5k';
+const SUPABASE_ANON_KEY = 'GANTI_DENGAN_KEY_ANDA'; // JANGAN expose di client
 
 let supabaseClient = null;
 try { supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e){ console.warn('Supabase gagal load', e); }
@@ -2432,13 +2391,13 @@ async function syncToSupabase(payload) {
 }
 
 // Patch fungsi sync yang sudah ada
-const _originalProcessQueue = window.processQueue;
+window._originalProcessQueue = window.processQueue;
 window.processQueue = async function() {
   if (!navigator.onLine) return;
   
   // 1. Jalankan sync Google Sheet lama (jika ada)
-  if (typeof _originalProcessQueue === 'function') {
-    await _originalProcessQueue();
+  if (typeof window._originalProcessQueue === 'function' {
+    await window._originalProcessQueue();
   }
   
   // 2. Sync ke Supabase
