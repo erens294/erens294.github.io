@@ -1233,7 +1233,10 @@
             fragment.appendChild(tr);
         });
         tbody.appendChild(fragment);
-dari ${filtered.length} data. Gunakan search untuk filter lebih spesifik.</td>`;
+        
+        if (filtered.length > RENDER_LIMIT) {
+            const warn = document.createElement('tr');
+            warn.innerHTML = `<td colspan="19" style="text-align:center; padding:12px; background:#fff3cd; color:#856404; font-size:12px;">Menampilkan ${RENDER_LIMIT} dari ${filtered.length} data. Gunakan search untuk filter lebih spesifik.</td>`;
             tbody.appendChild(warn);
         }
         
@@ -1415,7 +1418,10 @@ dari ${filtered.length} data. Gunakan search untuk filter lebih spesifik.</td>`;
             fragment.appendChild(tr);
         });
         tbody.appendChild(fragment);
-dari ${filtered.length} data. Gunakan search untuk filter lebih spesifik.</td>`;
+        
+        if (filtered.length > RENDER_LIMIT) {
+            const warn = document.createElement('tr');
+            warn.innerHTML = `<td colspan="19" style="text-align:center; padding:12px; background:#fff3cd; color:#856404; font-size:12px;">Menampilkan ${RENDER_LIMIT} dari ${filtered.length} data. Gunakan search untuk filter lebih spesifik.</td>`;
             tbody.appendChild(warn);
         }
         
