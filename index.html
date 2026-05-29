@@ -1233,11 +1233,7 @@
             fragment.appendChild(tr);
         });
         tbody.appendChild(fragment);
-        
-        // tampilkan warning jika data lebih dari limit
-        if (filtered.length > RENDER_LIMIT) {
-            const warn = document.createElement('tr');
-            warn.innerHTML = `<td colspan="19" style="text-align:center;padding:12px;background:#fef3c7;color:#92400e;">⚠️ Menampilkan ${RENDER_LIMIT} dari ${filtered.length} data. Gunakan search untuk filter lebih spesifik.</td>`;
+dari ${filtered.length} data. Gunakan search untuk filter lebih spesifik.</td>`;
             tbody.appendChild(warn);
         }
         
@@ -1419,11 +1415,7 @@
             fragment.appendChild(tr);
         });
         tbody.appendChild(fragment);
-        
-        // tampilkan warning jika data lebih dari limit
-        if (filtered.length > RENDER_LIMIT) {
-            const warn = document.createElement('tr');
-            warn.innerHTML = `<td colspan="19" style="text-align:center;padding:12px;background:#fef3c7;color:#92400e;">⚠️ Menampilkan ${RENDER_LIMIT} dari ${filtered.length} data. Gunakan search untuk filter lebih spesifik.</td>`;
+dari ${filtered.length} data. Gunakan search untuk filter lebih spesifik.</td>`;
             tbody.appendChild(warn);
         }
         
@@ -2066,6 +2058,7 @@ CS Ground`;
     function renderParameters() {
         const tbody = document.getElementById('parameterBody');
         tbody.innerHTML = '';
+        const fragment = document.createDocumentFragment();
         parameters.sort((a, b) => a.sto.localeCompare(b.sto)).forEach((param, index) => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -2079,13 +2072,6 @@ CS Ground`;
             fragment.appendChild(tr);
         });
         tbody.appendChild(fragment);
-        
-        // tampilkan warning jika data lebih dari limit
-        if (filtered.length > RENDER_LIMIT) {
-            const warn = document.createElement('tr');
-            warn.innerHTML = `<td colspan="19" style="text-align:center;padding:12px;background:#fef3c7;color:#92400e;">⚠️ Menampilkan ${RENDER_LIMIT} dari ${filtered.length} data. Gunakan search untuk filter lebih spesifik.</td>`;
-            tbody.appendChild(warn);
-        }
         
         // pastikan scroll ke atas biar baris 1 kelihatan
         const wrapper = document.querySelector('.table-wrapper');
@@ -2224,9 +2210,9 @@ CS Ground`;
     function setupListeners() {
     // debounce search
     let searchTimeout;
-    const searchEl = document.getElementById(\'searchHome\');
+    const searchEl = document.getElementById('searchHome');
     if (searchEl) {
-        searchEl.addEventListener(\'input\', function() {
+        searchEl.addEventListener('input', function() {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
                 renderFormData();
@@ -2234,7 +2220,7 @@ CS Ground`;
         });
     }
 
-        document.getElementById('searchHome').addEventListener('input', renderFormData);
+        // duplicate listener removed - debounce above handles it
         document.getElementById('filterDate').addEventListener('input', renderApprovalData);
         document.getElementById('filterFlight').addEventListener('input', renderApprovalData);
         document.getElementById('filterRoute').addEventListener('input', renderApprovalData);
@@ -2361,7 +2347,7 @@ window.syncToGoogleSheet = async function(){
 <script>
 // GANTI dengan project kamu dari supabase.com
 const SUPABASE_URL = 'https://siteybxbbmxeiynwoqet.supabase.co';
-const SUPABASE_ANON_KEY = 'GANTI_DENGAN_KEY_ANDA'; // JANGAN expose di client
+const SUPABASE_ANON_KEY = 'GANTI_DENGAN_KEY_ANDA'; // <-- GANTI dengan anon key asli dari Supabase
 
 let supabaseClient = null;
 try { supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e){ console.warn('Supabase gagal load', e); }
@@ -2369,16 +2355,20 @@ try { supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); }
 // Fungsi baru untuk sync ke Supabase
 async function syncToSupabase(payload) {
   if(!supabaseClient) return false;
+  if(SUPABASE_ANON_KEY.includes('GANTI')) { console.warn('Supabase key belum diganti'); return false; }
   try {
+    // simpan tiap form sebagai row terpisah agar tidak menimpa
+    const rows = payload.formData.map(item => ({
+      id: item.id,
+      flight_no: item.flightNo,
+      route: item.route,
+      date_of_flight: item.dateOfFlight,
+      form_data: item,
+      updated_at: new Date().toISOString()
+    }));
     const { data, error } = await supabaseClient
       .from('delay_sjnam')
-      .upsert([{
-        id: 1, // single row, atau pakai payload.timestamp
-        form_data: payload.formData,
-        approval_data: payload.approvalData,
-        parameters: payload.parameters,
-        updated_at: new Date().toISOString()
-      }], { onConflict: 'id' });
+      .upsert(rows, { onConflict: 'id' });
     
     if (error) throw error;
     console.log('✅ Supabase sync berhasil');
@@ -2396,7 +2386,7 @@ window.processQueue = async function() {
   if (!navigator.onLine) return;
   
   // 1. Jalankan sync Google Sheet lama (jika ada)
-  if (typeof window._originalProcessQueue === 'function' {
+  if (typeof window._originalProcessQueue === 'function') {
     await window._originalProcessQueue();
   }
   
@@ -2415,19 +2405,29 @@ window.processQueue = async function() {
 // Load data dari Supabase saat start
 async function loadFromSupabase() {
   if(!supabaseClient) return;
+  if(SUPABASE_ANON_KEY.includes('GANTI')) return;
   try {
     const { data, error } = await supabaseClient
       .from('delay_sjnam')
       .select('*')
-      .eq('id', 1)
-      .single();
+      .order('updated_at', { ascending: false })
+      .limit(500);
     
-    if (data && !error) {
-      if (data.form_data) formData = data.form_data;
-      if (data.approval_data) approvalData = data.approval_data;
-      if (data.parameters) parameters = data.parameters;
-      console.log('📥 Data dimuat dari Supabase');
-      // refresh UI
+    if (data && !error && data.length) {
+      // merge: jangan timpa data lokal yang lebih baru
+      const existingIds = new Set(formData.map(f => f.id));
+      let added = 0;
+      data.forEach(row => {
+        if (row.form_data && !existingIds.has(row.form_data.id)) {
+          formData.push(row.form_data);
+          added++;
+        }
+      });
+      if (added > 0) {
+        formData.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+        saveFormData();
+        console.log(`📥 ${added} data dimuat dari Supabase`);
+      }
       if (typeof renderFormData === 'function') renderFormData();
       if (typeof renderApprovalData === 'function') renderApprovalData();
     }
